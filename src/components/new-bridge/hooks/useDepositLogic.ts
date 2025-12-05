@@ -114,14 +114,19 @@ export function useDepositLogic({
       duration: 5000,
     });
 
-    // Save transaction history
-    if (stellarAddress && paymentData.rozoPaymentId && amount) {
+    // Save transaction history (only if wallet is connected)
+    if (
+      stellarConnected &&
+      stellarAddress &&
+      paymentData.rozoPaymentId &&
+      amount
+    ) {
       try {
         saveStellarHistory(
           stellarAddress,
           paymentData.rozoPaymentId,
           amount,
-          stellarAddress || destinationStellarAddress || "",
+          targetAddress,
           "deposit",
           "Base", // From Base (or other chains)
           "Stellar" // To Stellar
@@ -134,9 +139,11 @@ export function useDepositLogic({
       }
     }
 
-    // Refresh balances
-    checkTrustline();
-    checkXlmBalance();
+    // Refresh balances (only if wallet is connected)
+    if (stellarConnected) {
+      checkTrustline();
+      checkXlmBalance();
+    }
   };
 
   return {

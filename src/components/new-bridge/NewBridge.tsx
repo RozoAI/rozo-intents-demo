@@ -276,8 +276,9 @@ export function NewBridge() {
       memo,
       feeType,
       isAdmin,
+      // Only pass destinationStellarAddress when using manual address (not connected)
       destinationStellarAddress: stellarConnected
-        ? stellarAddress
+        ? undefined
         : manualStellarAddress.address,
       manualTrustlineExists: manualStellarAddress.trustlineExists,
     });
@@ -339,14 +340,12 @@ export function NewBridge() {
 
   // Sync the calculated amount to the opposite field
   useEffect(() => {
-    if (calculatedAmount !== "") {
-      if (feeType === FeeType.ExactIn) {
-        // User filled "From", update "To"
-        setToAmount(calculatedAmount);
-      } else {
-        // User filled "To", update "From"
-        setFromAmount(calculatedAmount);
-      }
+    if (feeType === FeeType.ExactIn) {
+      // User filled "From", update "To"
+      setToAmount(calculatedAmount);
+    } else {
+      // User filled "To", update "From"
+      setFromAmount(calculatedAmount);
     }
   }, [calculatedAmount, feeType]);
 
