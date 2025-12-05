@@ -2,13 +2,31 @@ import { isAddress, getAddress } from 'viem'
 import { type Address } from 'viem'
 
 /**
+ * Validates a Solana address (basic validation)
+ */
+function isSolanaAddress(address: string): boolean {
+  // Solana addresses are base58 encoded and typically 32-44 characters
+  const base58Regex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+  return base58Regex.test(address);
+}
+
+/**
  * Validates an Ethereum address with EIP-55 checksum
  */
-export function validateAddress(address: string): { isValid: boolean; checksumAddress?: Address; error?: string } {
+export function validateAddress(address: string, chainId?: number): { isValid: boolean; checksumAddress?: Address; error?: string } {
   if (!address) {
     return { isValid: false, error: 'Address is required' }
   }
 
+  // Check if it's a Solana chain (chainId 900 or 901)
+  if (chainId === 900 || chainId === 901) {
+    if (isSolanaAddress(address)) {
+      return { isValid: true }
+    }
+    return { isValid: false, error: 'Invalid Solana address format' }
+  }
+
+  // Default to EVM address validation
   if (!isAddress(address)) {
     return { isValid: false, error: 'Invalid Ethereum address format' }
   }

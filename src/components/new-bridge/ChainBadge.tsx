@@ -1,5 +1,13 @@
 import { cn } from "@/lib/utils";
-import { TokenLogo } from "@rozoai/intent-common";
+import {
+  base,
+  bsc,
+  ethereum,
+  polygon,
+  rozoSolana,
+  rozoStellar,
+  TokenLogo,
+} from "@rozoai/intent-common";
 import Image from "next/image";
 import ChainsStacked from "../chains-stacked";
 
@@ -16,12 +24,32 @@ export function ChainBadge({ isSwitched, isFrom, className }: ChainBadgeProps) {
   const getExcludeChains = () => {
     if (!isSwitched) {
       // From: Base/Solana/Polygon, To: Stellar
-      return isFrom ? ["stellar"] : ["base", "solana", "ethereum", "bsc"];
+      return isFrom
+        ? [rozoStellar.chainId]
+        : [
+            base.chainId,
+            rozoSolana.chainId,
+            ethereum.chainId,
+            bsc.chainId,
+            polygon.chainId,
+          ];
     } else {
       // From: Stellar, To: Base (ONLY)
       return isFrom
-        ? ["base", "solana", "ethereum", "bsc"]
-        : ["stellar", "solana", "ethereum", "bsc"];
+        ? [
+            base.chainId,
+            rozoSolana.chainId,
+            ethereum.chainId,
+            bsc.chainId,
+            polygon.chainId,
+          ]
+        : [
+            rozoStellar.chainId,
+            rozoSolana.chainId,
+            ethereum.chainId,
+            bsc.chainId,
+            polygon.chainId,
+          ];
     }
   };
 

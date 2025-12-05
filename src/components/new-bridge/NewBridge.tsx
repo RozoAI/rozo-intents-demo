@@ -4,7 +4,7 @@ import { useStellarWallet } from "@/contexts/StellarWalletContext";
 import { GetFeeError, useGetFee } from "@/hooks/use-get-fee";
 import { formatNumber } from "@/lib/formatNumber";
 import { DEFAULT_INTENT_PAY_CONFIG } from "@/lib/intentPay";
-import { FeeType } from "@rozoai/intent-common";
+import { base, FeeType } from "@rozoai/intent-common";
 import { AlertTriangle, Clock, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -12,11 +12,12 @@ import { toast } from "sonner";
 import { StellarWalletConnect } from "../StellarWalletConnect";
 import { Button } from "../ui/button";
 import { AmountLimitWarning } from "./AmountLimitWarning";
-import { BaseAddressInput } from "./BaseAddressInput";
 import { BridgeCard } from "./BridgeCard";
 import { BridgeSwapButton } from "./BridgeSwapButton";
 import { ChainBadge } from "./ChainBadge";
+import { ChainSelector, supportedPayoutChains } from "./ChainSelector";
 import { DepositButton } from "./DepositButton";
+import { DestinationAddressInput } from "./DestinationAddressInput";
 import { HistoryDialog } from "./HistoryDialog";
 import { useDepositLogic } from "./hooks/useDepositLogic";
 import { useWithdrawLogic } from "./hooks/useWithdrawLogic";
@@ -35,12 +36,16 @@ export function NewBridge() {
   const [isSwitched, setIsSwitched] = useState(false);
   const [isWithdrawLoading, setIsWithdrawLoading] = useState(false);
   const [balanceError, setBalanceError] = useState<string>("");
-  const [baseAddress, setBaseAddress] = useState<string>("");
+  const [destinationAddress, setDestinationAddress] = useState<string>("");
   const [addressError, setAddressError] = useState<string>("");
   const [memo, setMemo] = useState<string>("");
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   // State to track history updates
   const [historyUpdateTrigger, setHistoryUpdateTrigger] = useState(0);
+  // Destination chain for withdrawal (default to Base)
+  const [destinationChainId, setDestinationChainId] = useState<number>(
+    base.chainId
+  );
 
   const searchParams = useSearchParams();
   const isAdmin = searchParams.get("admin") === "rozo";
@@ -186,7 +191,7 @@ export function NewBridge() {
       isWithdrawLoading ||
       isFeeLoading ||
       !!feeErrorData ||
-      !baseAddress ||
+      !destinationAddress ||
       !!addressError
     );
   }, [
@@ -195,7 +200,7 @@ export function NewBridge() {
     isWithdrawLoading,
     isFeeLoading,
     feeErrorData,
-    baseAddress,
+    destinationAddress,
     addressError,
   ]);
 
@@ -233,11 +238,20 @@ export function NewBridge() {
     };
   }, []);
 
+  // Get destination chain name for button text
+  const destinationChainName = useMemo(() => {
+    return (
+      supportedPayoutChains.find((c) => c?.chainId === destinationChainId)
+        ?.name || "Base"
+    );
+  }, [destinationChainId]);
+
   // Use withdraw logic hook (when isSwitched = true)
   const { handleWithdraw } = useWithdrawLogic({
     amount: fromAmount,
     feeAmount: feeData?.fee.toFixed(2) || "0",
-    baseAddress,
+    destinationAddress,
+    destinationChainId,
     feeType,
     onLoadingChange: setIsWithdrawLoading,
     isAdmin,
@@ -258,8 +272,9 @@ export function NewBridge() {
     setIsSwitched(!isSwitched);
     setBalanceError("");
     setAddressError("");
-    setBaseAddress("");
+    setDestinationAddress("");
     setMemo("");
+    setDestinationChainId(base.chainId);
     // setFromAmount("");
     // setToAmount("");
     // setFeeType(FeeType.ExactIn);
@@ -384,21 +399,36 @@ export function NewBridge() {
               setFeeType(FeeType.ExactOut);
             }}
           />
-          <ChainBadge
-            isSwitched={isSwitched}
-            isFrom={false}
-            className="absolute top-2 right-2"
-          />
+
+          {!isSwitched ? (
+            <ChainBadge
+              isSwitched={isSwitched}
+              isFrom={false}
+              className="absolute top-2 right-2"
+            />
+          ) : (
+            <ChainSelector
+              value={destinationChainId}
+              className="absolute top-2 right-2"
+              onChange={(chainId) => {
+                setDestinationChainId(chainId);
+                // Clear address when chain changes
+                setDestinationAddress("");
+                setAddressError("");
+              }}
+            />
+          )}
         </BridgeCard>
 
-        {/* Base Address Input - Only show when withdrawing (Stellar to Base) */}
+        {/* Chain Selector & Address Input - Only show when withdrawing (Stellar to multi-chain) */}
         {isSwitched && (
           <div className="my-4 sm:my-6 space-y-4">
-            <BaseAddressInput
-              value={baseAddress}
-              onChange={setBaseAddress}
+            <DestinationAddressInput
+              value={destinationAddress}
+              onChange={setDestinationAddress}
               error={addressError}
               onErrorChange={setAddressError}
+              chainId={destinationChainId}
             />
           </div>
         )}
@@ -499,7 +529,9 @@ export function NewBridge() {
               {(isWithdrawLoading || isFeeLoading) && (
                 <Loader2 className="size-5 animate-spin" />
               )}
-              {isFeeLoading ? "Loading fee..." : "Bridge USDC to Base"}
+              {isFeeLoading
+                ? "Loading fee..."
+                : `Bridge USDC to ${destinationChainName}`}
             </Button>
           ) : (
             // Deposit Button
