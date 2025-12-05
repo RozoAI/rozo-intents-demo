@@ -7,6 +7,7 @@ import {
   createPayment,
   ethereumUSDC,
   FeeType,
+  getChainById,
   PaymentResponse,
   polygonUSDC,
   rozoStellarUSDC,
@@ -86,6 +87,7 @@ export const useStellarTransfer = (
 
         // Get destination token based on chain ID
         const destinationToken = getDestinationToken(payload.chainId);
+        const destinationChain = getChainById(destinationToken.chainId);
 
         const payment = await createPayment({
           appId,
@@ -101,7 +103,7 @@ export const useStellarTransfer = (
             items: [
               {
                 name: "ROZO Intents",
-                description: `Transfer USDC from Stellar to ${destinationToken.symbol}`,
+                description: `Transfer USDC from Stellar to ${destinationChain?.name}`,
               },
             ],
           },
