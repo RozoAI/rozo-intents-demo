@@ -14,7 +14,9 @@ export function StellarBalanceCard() {
     <div className="mb-4 flex items-center justify-between bg-neutral-100 rounded-xl p-4 border border-neutral-200 dark:bg-neutral-800/30 dark:border-neutral-700/30">
       <div className="flex items-center gap-3">
         <div>
-          <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">Your Balance</div>
+          <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">
+            Your Balance
+          </div>
           <div className="text-2xl font-semibold text-neutral-900 dark:text-white">
             <span
               className={cn(
@@ -26,7 +28,9 @@ export function StellarBalanceCard() {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}{" "}
-              <span className="text-sm text-neutral-500 dark:text-neutral-400">USDC</span>
+              <span className="text-sm text-neutral-500 dark:text-neutral-400">
+                USDC
+              </span>
             </span>
           </div>
         </div>

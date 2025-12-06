@@ -219,11 +219,7 @@ export function NewBridge() {
     }
 
     // Otherwise, debounce the update
-    const timer = setTimeout(() => {
-      setDebouncedAmount(inputAmount);
-    }, 500);
-
-    return () => clearTimeout(timer);
+    setDebouncedAmount(inputAmount);
   }, [fromAmount, toAmount, feeType]);
 
   // Listen for history updates
