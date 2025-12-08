@@ -10,7 +10,8 @@ import { saveStellarHistory } from "../utils/history";
 interface UseWithdrawLogicProps {
   amount: string | undefined;
   feeAmount: string | undefined;
-  baseAddress: string;
+  destinationAddress: string;
+  destinationChainId: number;
   onLoadingChange: (loading: boolean) => void;
   feeType: FeeType;
   isAdmin?: boolean;
@@ -19,7 +20,8 @@ interface UseWithdrawLogicProps {
 export function useWithdrawLogic({
   amount,
   feeAmount,
-  baseAddress,
+  destinationAddress,
+  destinationChainId,
   onLoadingChange,
   feeType,
   isAdmin = false,
@@ -72,14 +74,30 @@ export function useWithdrawLogic({
         // Save transaction history when withdrawal is successful
         if (stellarAddress && paymentId && amount) {
           try {
+            // Get destination chain name
+            const destinationChainName = (() => {
+              switch (destinationChainId) {
+                case 8453:
+                  return "Base";
+                case 137:
+                  return "Polygon";
+                case 1:
+                  return "Ethereum";
+                case 900:
+                  return "Solana";
+                default:
+                  return "Base";
+              }
+            })();
+
             saveStellarHistory(
               stellarAddress,
               paymentId,
               amount,
-              baseAddress,
+              destinationAddress,
               "withdraw",
               "Stellar",
-              "Base"
+              destinationChainName
             );
 
             // Dispatch custom event to update history
@@ -88,6 +106,22 @@ export function useWithdrawLogic({
             console.error("Failed to save transaction history:", error);
           }
         }
+
+        // Get destination chain name for toast message
+        const destinationChainName = (() => {
+          switch (destinationChainId) {
+            case 8453:
+              return "Base";
+            case 137:
+              return "Polygon";
+            case 1:
+              return "Ethereum";
+            case 900:
+              return "Solana";
+            default:
+              return "Base";
+          }
+        })();
 
         completeToastRef.current("Withdrawal complete!", {
           action: paymentId
@@ -106,7 +140,7 @@ export function useWithdrawLogic({
             : undefined,
           duration: Infinity,
           closeButton: true,
-          description: "Funds incoming to Base. Please check your wallet soon.",
+          description: `Funds incoming to ${destinationChainName}. Please check your wallet soon.`,
           dismissible: true,
         });
       } else if (step === "error") {
@@ -123,7 +157,8 @@ export function useWithdrawLogic({
     paymentId,
     stellarAddress,
     amount,
-    baseAddress,
+    destinationAddress,
+    destinationChainId,
     setStep,
   ]);
 
@@ -144,7 +179,8 @@ export function useWithdrawLogic({
       const result = await transfer({
         amount,
         feeAmount,
-        address: baseAddress,
+        address: destinationAddress,
+        chainId: destinationChainId,
       });
 
       if (result) {

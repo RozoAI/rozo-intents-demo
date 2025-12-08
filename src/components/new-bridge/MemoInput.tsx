@@ -22,7 +22,10 @@ export function MemoInput({ value, onChange }: MemoInputProps) {
           htmlFor="memo"
           className="text-neutral-600 dark:text-neutral-400"
         >
-          Memo
+          Memo{" "}
+          <span className="text-neutral-400 dark:text-neutral-500">
+            (Optional)
+          </span>
         </Label>
         <Tooltip>
           <TooltipTrigger asChild>

@@ -19,6 +19,7 @@ interface UseDepositLogicProps {
   memo?: string;
   feeType: FeeType;
   destinationStellarAddress?: string;
+  manualTrustlineExists?: boolean;
 }
 
 export function useDepositLogic({
@@ -27,6 +28,7 @@ export function useDepositLogic({
   memo,
   feeType,
   destinationStellarAddress,
+  manualTrustlineExists = false,
   isAdmin = false,
 }: UseDepositLogicProps) {
   const {
@@ -44,24 +46,25 @@ export function useDepositLogic({
   );
   const [isPreparingConfig, setIsPreparingConfig] = useState(false);
 
+  // Determine which address and trustline status to use
+  const targetAddress = destinationStellarAddress || stellarAddress;
+  const hasTrustline = destinationStellarAddress
+    ? manualTrustlineExists
+    : trustlineStatus.exists;
+
   // Check if able to pay
   const ableToPay =
     !!amount &&
     parseFloat(amount) > 0 &&
-    (!!stellarAddress || !!destinationStellarAddress) &&
-    trustlineStatus.exists &&
+    !!targetAddress &&
+    hasTrustline &&
     !!intentConfig &&
     !isPreparingConfig;
 
   // Config preparation (no debounce needed - handled in parent)
   useEffect(() => {
     // If no amount or trustline doesn't exist, clear config
-    if (
-      !amount ||
-      parseFloat(amount) <= 0 ||
-      !trustlineStatus.exists ||
-      !(stellarAddress || destinationStellarAddress)
-    ) {
+    if (!amount || parseFloat(amount) <= 0 || !hasTrustline || !targetAddress) {
       setIntentConfig(null);
       setIsPreparingConfig(false);
       return;
@@ -76,7 +79,7 @@ export function useDepositLogic({
           appId: appId,
           feeType: feeType,
           toChain: rozoStellarUSDC.chainId,
-          toAddress: destinationStellarAddress || stellarAddress,
+          toAddress: targetAddress,
           toToken: rozoStellarUSDC.token,
           toUnits: amount,
           metadata: {
@@ -102,14 +105,7 @@ export function useDepositLogic({
     };
 
     prepareConfig();
-  }, [
-    amount,
-    memo,
-    stellarAddress,
-    destinationStellarAddress,
-    trustlineStatus.exists,
-    isAdmin,
-  ]);
+  }, [amount, memo, targetAddress, hasTrustline, isAdmin, appId, feeType]);
 
   const handlePaymentCompleted = (paymentData: PaymentCompletedEvent) => {
     toast.success(`Deposit is in progress! 🎉`, {
@@ -118,14 +114,19 @@ export function useDepositLogic({
       duration: 5000,
     });
 
-    // Save transaction history
-    if (stellarAddress && paymentData.rozoPaymentId && amount) {
+    // Save transaction history (only if wallet is connected)
+    if (
+      stellarConnected &&
+      stellarAddress &&
+      paymentData.rozoPaymentId &&
+      amount
+    ) {
       try {
         saveStellarHistory(
           stellarAddress,
           paymentData.rozoPaymentId,
           amount,
-          stellarAddress || destinationStellarAddress || "",
+          targetAddress,
           "deposit",
           "Base", // From Base (or other chains)
           "Stellar" // To Stellar
@@ -138,9 +139,11 @@ export function useDepositLogic({
       }
     }
 
-    // Refresh balances
-    checkTrustline();
-    checkXlmBalance();
+    // Refresh balances (only if wallet is connected)
+    if (stellarConnected) {
+      checkTrustline();
+      checkXlmBalance();
+    }
   };
 
   return {

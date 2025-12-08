@@ -5,9 +5,14 @@ import { StellarPayNow } from "@/lib/stellar-pay";
 import {
   baseUSDC,
   createPayment,
+  ethereumUSDC,
   FeeType,
+  getChainById,
   PaymentResponse,
+  polygonUSDC,
   rozoStellarUSDC,
+  solanaUSDC,
+  Token,
 } from "@rozoai/intent-common";
 import { Networks, TransactionBuilder } from "@stellar/stellar-sdk";
 import { useState } from "react";
@@ -24,6 +29,23 @@ type Payload = {
   feeAmount: string;
   amount: string;
   address: string;
+  chainId: number;
+};
+
+// Helper function to get the destination token based on chain ID
+const getDestinationToken = (chainId: number): Token => {
+  switch (chainId) {
+    case 8453: // Base
+      return baseUSDC;
+    case 137: // Polygon
+      return polygonUSDC;
+    case 1: // Ethereum
+      return ethereumUSDC;
+    case 900: // Solana
+      return solanaUSDC;
+    default:
+      return baseUSDC; // Default to Base
+  }
 };
 
 export const useStellarTransfer = (
@@ -63,11 +85,15 @@ export const useStellarTransfer = (
             ? payload.amount
             : (Number(payload.amount) - Number(payload.feeAmount)).toFixed(2);
 
+        // Get destination token based on chain ID
+        const destinationToken = getDestinationToken(payload.chainId);
+        const destinationChain = getChainById(destinationToken.chainId);
+
         const payment = await createPayment({
           appId,
           feeType,
-          toChain: baseUSDC.chainId,
-          toToken: baseUSDC.token,
+          toChain: destinationToken.chainId,
+          toToken: destinationToken.token,
           toAddress: payload.address,
           toUnits: payAmount,
           preferredChain: rozoStellarUSDC.chainId,
@@ -77,7 +103,7 @@ export const useStellarTransfer = (
             items: [
               {
                 name: "ROZO Intents",
-                description: "Transfer USDC to Stellar",
+                description: `Transfer USDC from Stellar to ${destinationChain?.name}`,
               },
             ],
           },
