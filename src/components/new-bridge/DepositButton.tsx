@@ -61,6 +61,7 @@ export function DepositButton({
         onPaymentCompleted={onPaymentCompleted}
         onPayoutCompleted={checkTrustline}
         showProcessingPayout
+        resetOnSuccess
       >
         {({ show }) => (
           <Button
