@@ -17,7 +17,7 @@ import {
 import { Check, ChevronDown } from "lucide-react";
 import Image from "next/image";
 import React, { useMemo } from "react";
-import { chainToLogo } from "../chains-stacked";
+import { chainToLogo } from "../ChainStacked";
 
 interface ChainSelectorProps {
   value: number;

@@ -15,11 +15,6 @@ import {
   Stellar,
 } from "./icons/chains";
 
-interface ChainLogo {
-  type: string;
-  component: React.ReactNode;
-}
-
 export const chainToLogo = {
   [base.chainId]: <Base />,
   [bsc.chainId]: <BinanceSmartChain />,

@@ -9,7 +9,7 @@ import {
   TokenLogo,
 } from "@rozoai/intent-common";
 import Image from "next/image";
-import ChainsStacked from "../chains-stacked";
+import ChainsStacked from "../ChainStacked";
 
 // isSwitched = false -> Base/Solana/Polygon to Stellar
 // isSwitched = true -> Stellar to Base (ONLY BASE)

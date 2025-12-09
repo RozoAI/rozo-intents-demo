@@ -15,7 +15,7 @@ export default function NewPage() {
           className="text-sm leading-relaxed"
           style={{ color: "var(--color-warning-text)" }}
         >
-          This bridge is currently in Alpha Phase and may contain unexpected
+          This bridge is currently in <b>Beta Phase</b> and may contain unexpected
           behavior. Start with a small amount. Please contact us if you
           encounter issues.
         </p>

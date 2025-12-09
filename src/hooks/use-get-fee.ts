@@ -34,7 +34,7 @@ const fetchFee = async (params: GetFeeParams): Promise<GetFeeResponse> => {
 
   const queryParams = new URLSearchParams({
     amount: params.amount.toString(),
-    type: params.type ?? "exactout",
+    type: params.type ?? FeeType.ExactOut,
     ...(params.appId && { appId: params.appId }),
     ...(params.currency && { currency: params.currency }),
   });

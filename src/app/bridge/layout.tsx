@@ -155,6 +155,13 @@ export default function NewPageLayout({
             </Link>
 
             <Link
+              href="https://docs.rozo.ai"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Docs
+            </Link>
+
+            <Link
               href="/terms"
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
