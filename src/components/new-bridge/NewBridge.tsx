@@ -571,26 +571,41 @@ export function NewBridge() {
           ) : (
             // Deposit Button - Can work with or without wallet connection
             <>
-              <DepositButton
-                intentConfig={intentConfig}
-                ableToPay={
-                  ableToPay &&
-                  toUnitsWithFees !== "" &&
-                  parseFloat(toUnitsWithFees) > 0
-                }
-                isPreparingConfig={isPreparingConfig}
-                isFeeLoading={isFeeLoading}
-                hasFeeError={!!feeErrorData}
-                onPaymentCompleted={handlePaymentCompleted}
-              />
-              {/* {!stellarConnected && manualStellarAddress.address && (
-                <div className="mt-3 text-center">
-                  <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">
-                    or
-                  </div>
-                  <StellarWalletConnect className="w-full h-10 text-sm" />
-                </div>
-              )} */}
+              {stellarConnected && stellarAddress ? (
+                // User is connected - show deposit button
+                <DepositButton
+                  intentConfig={intentConfig}
+                  ableToPay={
+                    ableToPay &&
+                    toUnitsWithFees !== "" &&
+                    parseFloat(toUnitsWithFees) > 0
+                  }
+                  isPreparingConfig={isPreparingConfig}
+                  isFeeLoading={isFeeLoading}
+                  hasFeeError={!!feeErrorData}
+                  onPaymentCompleted={handlePaymentCompleted}
+                />
+              ) : manualStellarAddress.address &&
+                manualStellarAddress.trustlineExists ? (
+                // User not connected, but has filled Stellar address and trustline exists
+                <DepositButton
+                  intentConfig={intentConfig}
+                  ableToPay={
+                    ableToPay &&
+                    toUnitsWithFees !== "" &&
+                    parseFloat(toUnitsWithFees) > 0 &&
+                    !!fromAmount &&
+                    parseFloat(fromAmount) > 0
+                  }
+                  isPreparingConfig={isPreparingConfig}
+                  isFeeLoading={isFeeLoading}
+                  hasFeeError={!!feeErrorData}
+                  onPaymentCompleted={handlePaymentCompleted}
+                />
+              ) : (
+                // User not connected and conditions not met - show connect wallet
+                <StellarWalletConnect className="w-full h-12 sm:h-14 text-base sm:text-lg" />
+              )}
             </>
           )}
         </div>
