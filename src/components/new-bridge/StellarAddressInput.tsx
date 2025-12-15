@@ -136,13 +136,14 @@ export function StellarAddressInput({
           onChange={(e) => handleChange(e.target.value)}
           onBlur={handleBlur}
           rows={2}
-          className={`min-h-[48px] max-h-[72px] py-3 pr-10 resize-none overflow-y-auto break-all text-sm leading-tight bg-white border-neutral-300 text-neutral-900 placeholder:text-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-500 ${
+          className={`min-h-[40px] sm:min-h-[48px] max-h-[72px] py-2 sm:py-3 pr-10 resize-none overflow-y-auto break-all text-base leading-tight bg-white border-neutral-300 text-neutral-900 placeholder:text-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-500 ${
             error
               ? "border-red-500 focus-visible:border-red-500 dark:border-red-500 dark:focus-visible:border-red-500"
               : trustlineExists
               ? "border-green-500 focus-visible:border-green-500 dark:border-green-500 dark:focus-visible:border-green-500"
               : ""
           }`}
+          style={{ fontSize: '16px' }} // Prevent iOS zoom
         />
         <StatusIndicator />
       </div>

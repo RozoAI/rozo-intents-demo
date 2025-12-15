@@ -31,11 +31,11 @@ export function DepositButton({
     return (
       <Button
         size="lg"
-        className="w-full h-12 sm:h-14 text-base sm:text-lg rounded-2xl cursor-not-allowed"
+        className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl cursor-not-allowed"
         disabled
       >
         {(isPreparingConfig || isFeeLoading) && (
-          <Loader2 className="size-5 animate-spin" />
+          <Loader2 className="size-4 sm:size-5 animate-spin" />
         )}
         {isFeeLoading
           ? "Loading fee..."
@@ -67,7 +67,7 @@ export function DepositButton({
           <Button
             onClick={show}
             size="lg"
-            className="w-full h-12 sm:h-14 text-base sm:text-lg rounded-2xl cursor-pointer"
+            className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl cursor-pointer"
           >
             Bridge USDC to Stellar
           </Button>
@@ -80,7 +80,7 @@ export function DepositButton({
   return (
     <Button
       size="lg"
-      className="w-full h-14 text-lg rounded-2xl cursor-not-allowed"
+      className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl cursor-not-allowed"
       disabled
     >
       Bridge USDC to Stellar

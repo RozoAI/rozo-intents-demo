@@ -96,12 +96,14 @@ export function StellarWalletConnect({ className }: StellarWalletConnectProps) {
   if (!stellarConnected) {
     return (
       <Button
-        className={cn("flex items-center gap-2", className)}
+        className={cn("flex items-center gap-1.5 sm:gap-2", className)}
         onClick={handleConnect}
         disabled={stellarConnecting}
       >
-        <Wallet className="size-4" />
-        {stellarConnecting ? "Connecting..." : "Connect Stellar Wallet"}
+        <Wallet className="size-3.5 sm:size-4" />
+        <span className="text-xs sm:text-base">
+          {stellarConnecting ? "Connecting..." : "Connect Stellar Wallet"}
+        </span>
       </Button>
     );
   }
@@ -109,40 +111,40 @@ export function StellarWalletConnect({ className }: StellarWalletConnectProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button className={cn("flex items-center gap-2", className)}>
-          <div className="flex items-center gap-2">
-            <Wallet className="size-4" />
-            <span className="font-mono">
+        <Button className={cn("flex items-center gap-1.5 sm:gap-2", className)}>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Wallet className="size-3.5 sm:size-4" />
+            <span className="font-mono text-xs sm:text-base">
               {formatStellarAddress(stellarAddress)}
             </span>
           </div>
-          <ChevronDown className="h-4 w-4" />
+          <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
+      <DropdownMenuContent align="end" className="w-72 sm:w-80">
         {/* Account Info */}
-        <div className="p-3 border-b">
+        <div className="p-2.5 sm:p-3 border-b">
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-medium">Stellar Connected</div>
-              <div className="text-sm text-muted-foreground font-mono mt-1 font-medium">
+              <div className="font-medium text-sm sm:text-base">Stellar Connected</div>
+              <div className="text-xs sm:text-sm text-muted-foreground font-mono mt-0.5 sm:mt-1 font-medium">
                 {formatStellarAddress(stellarAddress)}
               </div>
-              <div className="text-xs text-muted-foreground font-mono mt-1">
+              <div className="text-[10px] sm:text-xs text-muted-foreground font-mono mt-0.5 sm:mt-1">
                 {stellarWalletName}
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5 sm:gap-1">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleRefreshBalances}
-                className="h-8 w-8 p-0"
+                className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                 disabled={xlmBalance.checking || trustlineStatus.checking}
               >
                 <RefreshCw
                   className={cn(
-                    "size-4",
+                    "size-3.5 sm:size-4",
                     (xlmBalance.checking || trustlineStatus.checking) &&
                       "animate-spin"
                   )}
@@ -152,25 +154,25 @@ export function StellarWalletConnect({ className }: StellarWalletConnectProps) {
                 variant="ghost"
                 size="sm"
                 onClick={copyAddress}
-                className="h-8 w-8 p-0"
+                className="h-7 w-7 sm:h-8 sm:w-8 p-0"
               >
-                <Copy className="size-4" />
+                <Copy className="size-3.5 sm:size-4" />
               </Button>
             </div>
           </div>
         </div>
 
         {/* Balances */}
-        <div className="p-3 border-b space-y-3">
+        <div className="p-2.5 sm:p-3 border-b space-y-2.5 sm:space-y-3">
           {/* XLM Balance */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Stellar className="size-[20px] rounded-full" />
-              <span className="text-sm font-medium">XLM</span>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Stellar className="size-[18px] sm:size-[20px] rounded-full" />
+              <span className="text-xs sm:text-sm font-medium">XLM</span>
             </div>
-            <span className="text-sm font-mono">
+            <span className="text-xs sm:text-sm font-mono">
               {xlmBalance.checking ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
               ) : (
                 `${Number(xlmBalance.balance).toFixed(2)} XLM`
               )}
@@ -178,44 +180,44 @@ export function StellarWalletConnect({ className }: StellarWalletConnectProps) {
           </div>
 
           {/* USDC Trustline Status */}
-          <div className="space-y-2">
+          <div className="space-y-1.5 sm:space-y-2">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Image src="/usdc.svg" alt="USDC" width={20} height={20} />
-                <span className="text-sm font-medium">USDC</span>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Image src="/usdc.svg" alt="USDC" width={18} height={18} className="w-[18px] h-[18px] sm:w-5 sm:h-5" />
+                <span className="text-xs sm:text-sm font-medium">USDC</span>
               </div>
               {trustlineStatus.checking ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
               ) : trustlineStatus.exists ? (
-                <span className="text-sm font-mono">
+                <span className="text-xs sm:text-sm font-mono">
                   {Number(trustlineStatus.balance).toFixed(2)} USDC
                 </span>
               ) : (
-                <div className="text-xs text-yellow-600 flex items-center gap-1">
-                  <AlertTriangle className="inline w-4 h-4 text-yellow-500" />
+                <div className="text-[10px] sm:text-xs text-yellow-600 flex items-center gap-0.5 sm:gap-1">
+                  <AlertTriangle className="inline w-3 h-3 sm:w-4 sm:h-4 text-yellow-500" />
                   USDC trustline required
                 </div>
               )}
             </div>
 
             {!trustlineStatus.checking && !trustlineStatus.exists && (
-              <div className="space-y-2">
+              <div className="space-y-1.5 sm:space-y-2">
                 {xlmBalance.checking ? (
-                  <div className="text-xs text-gray-500 flex items-center gap-1">
-                    <Loader2 className="w-3 h-3 animate-spin" />
+                  <div className="text-[10px] sm:text-xs text-gray-500 flex items-center gap-1">
+                    <Loader2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 animate-spin" />
                     Checking XLM balance...
                   </div>
                 ) : parseFloat(xlmBalance.balance) >= 1.5 ? (
                   <Button
                     size="sm"
                     onClick={handleCreateTrustline}
-                    className="w-full h-7 text-xs"
+                    className="w-full h-6 sm:h-7 text-[10px] sm:text-xs"
                   >
-                    <Plus className="w-3 h-3" />
+                    <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     Add USDC Trustline
                   </Button>
                 ) : (
-                  <div className="text-xs text-red-600">
+                  <div className="text-[10px] sm:text-xs text-red-600">
                     Need at least 1.5 XLM for trustline creation
                   </div>
                 )}
@@ -225,8 +227,8 @@ export function StellarWalletConnect({ className }: StellarWalletConnectProps) {
         </div>
 
         {/* Disconnect */}
-        <DropdownMenuItem onClick={handleDisconnect} variant="destructive">
-          <LogOut className="size-4" />
+        <DropdownMenuItem onClick={handleDisconnect} variant="destructive" className="text-xs sm:text-sm">
+          <LogOut className="size-3.5 sm:size-4" />
           Disconnect
         </DropdownMenuItem>
       </DropdownMenuContent>

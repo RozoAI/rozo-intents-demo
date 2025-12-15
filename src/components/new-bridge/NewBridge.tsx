@@ -347,9 +347,9 @@ export function NewBridge() {
 
   return (
     <div className="w-full max-w-xl mx-auto">
-      <div className="rounded-3xl p-4 sm:p-6 md:p-8 bg-neutral-50 border border-neutral-200 dark:bg-neutral-900 dark:border-neutral-800 shadow-lg">
-        <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-neutral-50">
+      <div className="rounded-2xl sm:rounded-3xl p-3 sm:p-6 md:p-8 bg-neutral-50 border border-neutral-200 dark:bg-neutral-900 dark:border-neutral-800 shadow-lg">
+        <div className="flex items-center justify-between mb-3 sm:mb-6">
+          <h1 className="text-lg sm:text-2xl font-bold text-neutral-900 dark:text-neutral-50">
             Bridge
           </h1>
           {stellarConnected && hasHistory ? (
@@ -357,10 +357,10 @@ export function NewBridge() {
               variant="outline"
               size="sm"
               onClick={() => setHistoryDialogOpen(true)}
-              className="text-xs sm:text-sm h-8 sm:h-9"
+              className="text-xs sm:text-sm h-7 sm:h-9"
             >
               <Clock className="size-3 sm:size-4 sm:mr-2" />
-              <span>Show History</span>
+              <span className="hidden sm:inline">Show History</span>
             </Button>
           ) : stellarConnected ? (
             <span className="text-xs sm:text-sm text-muted-foreground">
@@ -432,7 +432,7 @@ export function NewBridge() {
 
         {/* Chain Selector & Address Input - Only show when withdrawing (Stellar to multi-chain) */}
         {isSwitched && (
-          <div className="my-4 sm:my-6 space-y-4">
+          <div className="my-3 sm:my-6 space-y-3 sm:space-y-4">
             <DestinationAddressInput
               value={destinationAddress}
               onChange={setDestinationAddress}
@@ -445,7 +445,7 @@ export function NewBridge() {
 
         {/* Deposit Configuration - Only show when depositing (multi-chain to Stellar) */}
         {!isSwitched && (
-          <div className="mt-4 sm:mt-6 space-y-4">
+          <div className="mt-3 sm:mt-6 space-y-3 sm:space-y-4">
             {stellarConnected ? (
               // Show trustline warning if wallet is connected
               <>
@@ -519,7 +519,7 @@ export function NewBridge() {
 
         {/* Amount Limit Warning */}
         {limitError && (
-          <div className="mt-4 sm:mt-6">
+          <div className="mt-3 sm:mt-6">
             <AmountLimitWarning
               limit={limitError.maxAllowed}
               message={limitError.message}
@@ -531,7 +531,7 @@ export function NewBridge() {
           (toAmount && parseFloat(toAmount) > 0)) &&
           validFeeData &&
           !limitError && (
-            <div className="flex items-center justify-between mt-4 sm:mt-6">
+            <div className="flex items-center justify-between mt-3 sm:mt-6">
               <div className="text-xs sm:text-sm">
                 <p className="text-neutral-500 dark:text-neutral-400">Fees:</p>
                 <b className="text-neutral-900 dark:text-neutral-50">{fees}</b>
@@ -548,7 +548,7 @@ export function NewBridge() {
           )}
 
         {/* Connect Wallet / Bridge Button */}
-        <div className="mt-4 sm:mt-6">
+        <div className="mt-3 sm:mt-6">
           {isSwitched ? (
             // Withdraw Button - Requires wallet connection
             stellarConnected ? (
@@ -556,17 +556,17 @@ export function NewBridge() {
                 onClick={handleWithdraw}
                 disabled={isWithdrawDisabled}
                 size="lg"
-                className="w-full h-12 sm:h-14 text-base sm:text-lg rounded-2xl"
+                className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl"
               >
                 {(isWithdrawLoading || isFeeLoading) && (
-                  <Loader2 className="size-5 animate-spin" />
+                  <Loader2 className="size-4 sm:size-5 animate-spin" />
                 )}
                 {isFeeLoading
                   ? "Loading fee..."
                   : `Bridge USDC to ${destinationChainName}`}
               </Button>
             ) : (
-              <StellarWalletConnect className="w-full h-12 sm:h-14 text-base sm:text-lg" />
+              <StellarWalletConnect className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl" />
             )
           ) : (
             // Deposit Button - Can work with or without wallet connection
@@ -604,7 +604,7 @@ export function NewBridge() {
                 />
               ) : (
                 // User not connected and conditions not met - show connect wallet
-                <StellarWalletConnect className="w-full h-12 sm:h-14 text-base sm:text-lg" />
+                <StellarWalletConnect className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl" />
               )}
             </>
           )}

@@ -48,7 +48,7 @@ export function TokenAmountInput({
 
   return (
     <div className="flex-1">
-      <label className="text-sm text-neutral-600 dark:text-neutral-400 mb-2 block">
+      <label className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 mb-1.5 sm:mb-2 block">
         {label}
       </label>
       <input
@@ -56,10 +56,11 @@ export function TokenAmountInput({
         value={amount !== undefined ? formatNumber(amount) : ""}
         onChange={(e) => handleAmountChange(e.target.value)}
         placeholder="0"
-        className="text-5xl font-medium text-neutral-900 dark:text-white w-full outline-none bg-transparent placeholder:text-neutral-300 dark:placeholder:text-neutral-600"
+        className="text-3xl sm:text-5xl font-medium text-neutral-900 dark:text-white w-full outline-none bg-transparent placeholder:text-neutral-300 dark:placeholder:text-neutral-600"
         readOnly={readonly}
+        style={{ fontSize: 'clamp(1.875rem, 8vw, 3rem)' }} // Responsive: 30px mobile, scales up, max 48px
       />
-      <div className="text-sm text-neutral-500 dark:text-neutral-500 mt-2">
+      <div className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-500 mt-1.5 sm:mt-2">
         {getUsdValue()}
       </div>
     </div>

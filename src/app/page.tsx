@@ -10,36 +10,36 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* Header */}
       <header className="border-b">
-        <div className="container mx-auto px-4 py-6">
+        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Image
                 src="/rozo-logo.png"
                 alt="Rozo Logo"
-                width={32}
-                height={32}
-                className="rounded-lg"
+                width={24}
+                height={24}
+                className="rounded-lg sm:w-8 sm:h-8"
               />
               <div>
-                <h1 className="text-xl font-bold">ROZO Intents</h1>
-                <p className="text-sm text-muted-foreground">
+                <h1 className="text-lg sm:text-xl font-bold">ROZO Intents</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Any chain. Any stablecoin. Seconds.
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <Link
                 href="https://www.npmjs.com/package/@rozoai/intent-pay"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm hover:text-foreground transition-colors text-muted-foreground"
+                className="text-xs sm:text-sm hover:text-foreground transition-colors text-muted-foreground"
               >
                 NPM Package
               </Link>
 
               <Link
                 href="/docs"
-                className="text-sm hover:text-foreground transition-colors text-muted-foreground"
+                className="text-xs sm:text-sm hover:text-foreground transition-colors text-muted-foreground"
               >
                 Documentation
               </Link>
@@ -49,7 +49,7 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
         <div className="max-w-2xl mx-auto">
           {/* Bridge Component */}
 

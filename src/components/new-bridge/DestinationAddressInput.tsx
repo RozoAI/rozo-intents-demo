@@ -78,11 +78,12 @@ export function DestinationAddressInput({
         value={value}
         onChange={(e) => handleChange(e.target.value)}
         onBlur={handleBlur}
-        className={`h-12 bg-white border-neutral-300 text-neutral-900 placeholder:text-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-500 ${
+        className={`h-10 sm:h-12 bg-white border-neutral-300 text-base text-neutral-900 placeholder:text-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-500 ${
           error
             ? "border-red-500 focus-visible:border-red-500 dark:border-red-500 dark:focus-visible:border-red-500"
             : ""
         }`}
+        style={{ fontSize: '16px' }} // Prevent iOS zoom
       />
       {error && (
         <p className="text-xs text-red-500 dark:text-red-400">{error}</p>

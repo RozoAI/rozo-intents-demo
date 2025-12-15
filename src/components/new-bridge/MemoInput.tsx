@@ -44,7 +44,8 @@ export function MemoInput({ value, onChange }: MemoInputProps) {
         placeholder="Enter memo (optional)"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-12 bg-white border-neutral-300 text-neutral-900 placeholder:text-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-500"
+        className="h-10 sm:h-12 bg-white border-neutral-300 text-base text-neutral-900 placeholder:text-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-500"
+        style={{ fontSize: '16px' }} // Prevent iOS zoom
       />
     </div>
   );
