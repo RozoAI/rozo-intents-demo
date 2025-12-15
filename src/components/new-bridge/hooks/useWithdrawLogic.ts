@@ -4,6 +4,7 @@ import { useStellarWallet } from "@/contexts/StellarWalletContext";
 import { useStellarTransfer } from "@/hooks/use-stellar-transfer";
 import { useToastQueue } from "@/hooks/use-toast-queue";
 import { FeeType } from "@rozoai/intent-common";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { saveStellarHistory } from "../utils/history";
 
@@ -32,6 +33,7 @@ export function useWithdrawLogic({
     isAdmin,
     feeType
   );
+  const queryClient = useQueryClient();
   const {
     currentToastId,
     updateCurrentToast,
@@ -106,6 +108,9 @@ export function useWithdrawLogic({
             console.error("Failed to save transaction history:", error);
           }
         }
+
+        // Refresh analytics data
+        queryClient.invalidateQueries({ queryKey: ["analytics"] });
 
         // Get destination chain name for toast message
         const destinationChainName = (() => {

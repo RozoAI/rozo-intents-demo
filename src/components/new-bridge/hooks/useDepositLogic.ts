@@ -8,6 +8,7 @@ import {
   rozoStellarUSDC,
 } from "@rozoai/intent-common";
 import { useRozoPayUI } from "@rozoai/intent-pay";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { saveStellarHistory } from "../utils/history";
@@ -40,6 +41,7 @@ export function useDepositLogic({
   } = useStellarWallet();
 
   const { resetPayment } = useRozoPayUI();
+  const queryClient = useQueryClient();
 
   const [intentConfig, setIntentConfig] = useState<IntentPayConfig | null>(
     null
@@ -144,6 +146,9 @@ export function useDepositLogic({
       checkTrustline();
       checkXlmBalance();
     }
+
+    // Refresh analytics data
+    queryClient.invalidateQueries({ queryKey: ["analytics"] });
   };
 
   return {
