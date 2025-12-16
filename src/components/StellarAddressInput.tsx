@@ -5,10 +5,10 @@ import { useStellarWallet } from "@/contexts/StellarWalletContext";
 import {
   checkUSDCTrustline,
   isMuxedAddress,
-  isValidStellarAddress,
   normalizeStellarAddress,
 } from "@/lib/stellar";
 import { cn } from "@/lib/utils";
+import { isValidStellarAddress } from "@rozoai/intent-common";
 import { useEffect, useState } from "react";
 
 interface StellarAddressInputProps {

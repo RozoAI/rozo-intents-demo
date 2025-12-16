@@ -1,6 +1,6 @@
-import { StellarBridgeDemo } from '@/components/StellarBridgeDemo'
-import { DocsLayout } from '@/components/docs/DocsLayout'
-import { CodeBlock } from '@/components/docs/CodeBlock'
+import { StellarBridgeDemo } from "@/components/StellarBridgeDemo";
+import { CodeBlock } from "@/components/docs/CodeBlock";
+import { DocsLayout } from "@/components/docs/DocsLayout";
 
 export default function StellarDocsPage() {
   return (
@@ -8,9 +8,12 @@ export default function StellarDocsPage() {
       <div className="space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold mb-4">Stellar Wallet Integration</h1>
+          <h1 className="text-3xl font-bold mb-4">
+            Stellar Wallet Integration
+          </h1>
           <p className="text-lg text-muted-foreground">
-            Complete implementation of Stellar wallet support with Freighter, xBull, and WalletConnect integration.
+            Complete implementation of Stellar wallet support with Freighter,
+            xBull, and WalletConnect integration.
           </p>
         </div>
 
@@ -23,14 +26,17 @@ export default function StellarDocsPage() {
         {/* Implementation Guide */}
         <div className="space-y-6">
           <h2 className="text-2xl font-semibold">Implementation Guide</h2>
-          
+
           {/* Wallet Configuration */}
           <div>
-            <h3 className="text-xl font-medium mb-3">1. Wallet Configuration</h3>
+            <h3 className="text-xl font-medium mb-3">
+              1. Wallet Configuration
+            </h3>
             <p className="text-muted-foreground mb-4">
-              Following the recommended setup with Stellar Wallet Kit and WalletConnect:
+              Following the recommended setup with Stellar Wallet Kit and
+              WalletConnect:
             </p>
-            
+
             <CodeBlock
               language="typescript"
               code={`// EVM: wagmi + WalletConnect (eip155:*)
@@ -57,11 +63,14 @@ export const createStellarWalletKit = (network = 'PUBLIC') => {
 
           {/* WalletConnect Setup */}
           <div>
-            <h3 className="text-xl font-medium mb-3">2. WalletConnect Dual Namespace</h3>
+            <h3 className="text-xl font-medium mb-3">
+              2. WalletConnect Dual Namespace
+            </h3>
             <p className="text-muted-foreground mb-4">
-              Configure WalletConnect to support both EVM and Stellar namespaces:
+              Configure WalletConnect to support both EVM and Stellar
+              namespaces:
             </p>
-            
+
             <CodeBlock
               language="typescript"
               code={`// WalletConnect configuration with both namespaces
@@ -89,19 +98,22 @@ export const WALLETCONNECT_CONFIG = {
               <div className="p-4 border rounded-lg">
                 <h4 className="font-medium mb-2">🚀 Freighter</h4>
                 <p className="text-sm text-muted-foreground">
-                  Desktop extension (official SDF wallet). Uses the kit&apos;s Freighter connector.
+                  Desktop extension (official SDF wallet). Uses the kit&apos;s
+                  Freighter connector.
                 </p>
               </div>
               <div className="p-4 border rounded-lg">
                 <h4 className="font-medium mb-2">🐂 xBull</h4>
                 <p className="text-sm text-muted-foreground">
-                  Desktop extension + web wallet. Uses the kit&apos;s xBull connector.
+                  Desktop extension + web wallet. Uses the kit&apos;s xBull
+                  connector.
                 </p>
               </div>
               <div className="p-4 border rounded-lg">
                 <h4 className="font-medium mb-2">📱 LOBSTR</h4>
                 <p className="text-sm text-muted-foreground">
-                  Mobile wallet via WalletConnect (QR/deeplink). Uses the kit&apos;s WC module.
+                  Mobile wallet via WalletConnect (QR/deeplink). Uses the
+                  kit&apos;s WC module.
                 </p>
               </div>
             </div>
@@ -109,11 +121,13 @@ export const WALLETCONNECT_CONFIG = {
 
           {/* Memo Validation */}
           <div>
-            <h3 className="text-xl font-medium mb-3">4. SEP-29 Memo Required Validation</h3>
+            <h3 className="text-xl font-medium mb-3">
+              4. SEP-29 Memo Required Validation
+            </h3>
             <p className="text-muted-foreground mb-4">
               Automatic validation for exchange addresses that require memos:
             </p>
-            
+
             <CodeBlock
               language="typescript"
               code={`// SEP-29 memo required validation
@@ -152,35 +166,18 @@ export const checkMemoRequired = async (
 
           {/* Muxed Addresses */}
           <div>
-            <h3 className="text-xl font-medium mb-3">5. Muxed Address Support</h3>
+            <h3 className="text-xl font-medium mb-3">
+              5. Muxed Address Support
+            </h3>
             <p className="text-muted-foreground mb-4">
               Support for muxed addresses (M...) with proper normalization:
             </p>
-            
+
             <CodeBlock
               language="typescript"
               code={`// Muxed address utilities
 export const isMuxedAddress = (address: string): boolean => {
   return address.startsWith('M') && address.length === 69
-}
-
-export const isValidStellarAddress = (address: string): boolean => {
-  try {
-    // Check for regular Stellar address (G...)
-    if (address.startsWith('G') && address.length === 56) {
-      Keypair.fromPublicKey(address)
-      return true
-    }
-    
-    // Check for muxed address (M...)
-    if (address.startsWith('M') && address.length === 69) {
-      return true
-    }
-    
-    return false
-  } catch {
-    return false
-  }
 }
 
 export const normalizeStellarAddress = (address: string): string => {
@@ -198,9 +195,10 @@ export const normalizeStellarAddress = (address: string): string => {
           <div>
             <h3 className="text-xl font-medium mb-3">6. Transaction Signing</h3>
             <p className="text-muted-foreground mb-4">
-              Prefer stellar_signAndSubmitXDR for single-shot transactions, fallback to stellar_signXDR:
+              Prefer stellar_signAndSubmitXDR for single-shot transactions,
+              fallback to stellar_signXDR:
             </p>
-            
+
             <CodeBlock
               language="typescript"
               code={`// Sign and submit Stellar transaction via WalletConnect
@@ -241,8 +239,10 @@ export const signAndSubmitStellarTransaction = async (
           {/* Usage Examples */}
           <div>
             <h3 className="text-xl font-medium mb-3">7. Usage Examples</h3>
-            
-            <h4 className="text-lg font-medium mb-2">Basic Wallet Connection</h4>
+
+            <h4 className="text-lg font-medium mb-2">
+              Basic Wallet Connection
+            </h4>
             <CodeBlock
               language="tsx"
               code={`import { StellarWalletConnect } from '@/components/StellarWalletConnect'
@@ -266,7 +266,9 @@ export function MyComponent() {
 }`}
             />
 
-            <h4 className="text-lg font-medium mb-2 mt-4">Address Input with Validation</h4>
+            <h4 className="text-lg font-medium mb-2 mt-4">
+              Address Input with Validation
+            </h4>
             <CodeBlock
               language="tsx"
               code={`import { StellarAddressInput } from '@/components/StellarAddressInput'
@@ -287,7 +289,9 @@ export function AddressForm() {
 }`}
             />
 
-            <h4 className="text-lg font-medium mb-2 mt-4">Memo Input with SEP-29 Validation</h4>
+            <h4 className="text-lg font-medium mb-2 mt-4">
+              Memo Input with SEP-29 Validation
+            </h4>
             <CodeBlock
               language="tsx"
               code={`import { StellarMemoInput } from '@/components/StellarMemoInput'
@@ -306,7 +310,9 @@ export function MemoForm() {
 }`}
             />
 
-            <h4 className="text-lg font-medium mb-2 mt-4">Unified EVM + Stellar Wallet</h4>
+            <h4 className="text-lg font-medium mb-2 mt-4">
+              Unified EVM + Stellar Wallet
+            </h4>
             <CodeBlock
               language="tsx"
               code={`import { UnifiedWalletConnect } from '@/components/UnifiedWalletConnect'
@@ -329,7 +335,7 @@ export function BridgeInterface() {
           <p className="text-muted-foreground mb-4">
             Required environment variables for WalletConnect:
           </p>
-          
+
           <CodeBlock
             language="bash"
             code={`# .env.local
@@ -347,7 +353,7 @@ NEXT_PUBLIC_STELLAR_TESTNET_HORIZON_URL=https://horizon-testnet.stellar.org`}
           <p className="text-muted-foreground mb-4">
             Install the required packages:
           </p>
-          
+
           <CodeBlock
             language="bash"
             code={`npm install @creit.tech/stellar-wallets-kit @stellar/stellar-sdk @walletconnect/sign-client`}
@@ -355,5 +361,5 @@ NEXT_PUBLIC_STELLAR_TESTNET_HORIZON_URL=https://horizon-testnet.stellar.org`}
         </div>
       </div>
     </DocsLayout>
-  )
+  );
 }

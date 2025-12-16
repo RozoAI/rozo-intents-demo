@@ -9,7 +9,6 @@ import {
   Account,
   Asset,
   Horizon,
-  Keypair,
   Memo,
   Networks,
   Operation,
@@ -68,27 +67,6 @@ export const STELLAR_WALLETS: StellarWallet[] = [
     installed: true, // Always available via QR/deeplink
   },
 ];
-
-// Stellar address validation
-export const isValidStellarAddress = (address: string): boolean => {
-  try {
-    // Check for regular Stellar address (G...)
-    if (address.startsWith("G") && address.length === 56) {
-      Keypair.fromPublicKey(address);
-      return true;
-    }
-
-    // Check for muxed address (M...)
-    if (address.startsWith("M") && address.length === 69) {
-      // Muxed addresses are valid if they can be parsed
-      return true;
-    }
-
-    return false;
-  } catch {
-    return false;
-  }
-};
 
 // Muxed address utilities
 export const isMuxedAddress = (address: string): boolean => {

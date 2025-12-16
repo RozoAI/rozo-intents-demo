@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useStellarWallet } from "@/contexts/StellarWalletContext";
-import { checkUSDCTrustline, isValidStellarAddress } from "@/lib/stellar";
+import { checkUSDCTrustline } from "@/lib/stellar";
 import { formatStellarAddress } from "@/utils/address";
+import { isValidStellarAddress } from "@rozoai/intent-common";
 import {
   AlertCircle,
   ArrowRight,

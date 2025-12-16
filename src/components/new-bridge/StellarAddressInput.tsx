@@ -1,7 +1,8 @@
 "use client";
 
 import { Label } from "@/components/ui/label";
-import { checkUSDCTrustline, isValidStellarAddress } from "@/lib/stellar";
+import { checkUSDCTrustline } from "@/lib/stellar";
+import { isValidStellarAddress } from "@rozoai/intent-common";
 import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Textarea } from "../ui/textarea";
@@ -143,7 +144,7 @@ export function StellarAddressInput({
               ? "border-green-500 focus-visible:border-green-500 dark:border-green-500 dark:focus-visible:border-green-500"
               : ""
           }`}
-          style={{ fontSize: '16px' }} // Prevent iOS zoom
+          style={{ fontSize: "16px" }} // Prevent iOS zoom
         />
         <StatusIndicator />
       </div>
