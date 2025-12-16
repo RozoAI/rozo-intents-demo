@@ -1,7 +1,7 @@
 "use client";
 
 import { Label } from "@/components/ui/label";
-import { checkUSDCTrustline } from "@/lib/stellar";
+import { checkUSDCTrustline, isContractAddress } from "@/lib/stellar";
 import { isValidStellarAddress } from "@rozoai/intent-common";
 import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 import { useCallback, useState } from "react";
@@ -28,6 +28,14 @@ export function StellarAddressInput({
   const checkTrustline = useCallback(
     async (address: string) => {
       if (!isValidStellarAddress(address)) {
+        return;
+      }
+
+      // Skip trustline checking for contract addresses (C addresses)
+      if (isContractAddress(address)) {
+        setTrustlineExists(true);
+        onTrustlineStatusChange?.(true, "0");
+        onErrorChange?.("");
         return;
       }
 
@@ -72,20 +80,26 @@ export function StellarAddressInput({
   };
 
   const handleBlur = () => {
-    if (value.trim() === "") {
-      onErrorChange?.("");
-      return;
-    }
+    try {
+      if (value.trim() === "") {
+        onErrorChange?.("");
+        return;
+      }
 
-    if (!isValidStellarAddress(value)) {
+      if (!isValidStellarAddress(value)) {
+        onErrorChange?.("Invalid Stellar address");
+        setTrustlineExists(false);
+        onTrustlineStatusChange?.(false, "0");
+        return;
+      }
+
+      // Valid address, check trustline (or skip for contract addresses)
+      checkTrustline(value);
+    } catch {
       onErrorChange?.("Invalid Stellar address");
       setTrustlineExists(false);
       onTrustlineStatusChange?.(false, "0");
-      return;
     }
-
-    // Valid address, check trustline
-    checkTrustline(value);
   };
 
   // Status indicator component
@@ -132,7 +146,7 @@ export function StellarAddressInput({
       <div className="relative">
         <Textarea
           id="stellar-address"
-          placeholder="G..."
+          placeholder="Enter Stellar address"
           value={value}
           onChange={(e) => handleChange(e.target.value)}
           onBlur={handleBlur}
@@ -149,13 +163,15 @@ export function StellarAddressInput({
         <StatusIndicator />
       </div>
       {error && (
-        <p className="text-xs text-red-500 dark:text-red-400 break-words">
+        <p className="text-xs text-red-500 dark:text-red-400 wrap-break-word">
           {error}
         </p>
       )}
       {trustlineExists && !error && (
         <p className="text-xs text-green-600 dark:text-green-400">
-          ✓ USDC trustline verified
+          {isContractAddress(value)
+            ? "✓ Valid Stellar contract address"
+            : "✓ USDC trustline verified"}
         </p>
       )}
     </div>

@@ -73,6 +73,11 @@ export const isMuxedAddress = (address: string): boolean => {
   return address.startsWith("M") && address.length === 69;
 };
 
+// Check if address is a contract address (starts with "C")
+export const isContractAddress = (address: string): boolean => {
+  return address.startsWith("C") && address.length === 56;
+};
+
 export const normalizeStellarAddress = (address: string): string => {
   if (isMuxedAddress(address)) {
     // For muxed addresses, we need to extract the base account ID
