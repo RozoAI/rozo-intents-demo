@@ -18,7 +18,7 @@ export default function Home() {
                 alt="Rozo Logo"
                 width={24}
                 height={24}
-                className="rounded-lg sm:w-8 sm:h-8"
+                className="rounded-lg sm:w-8 sm:h-8 hidden sm:block"
               />
               <div>
                 <h1 className="text-lg sm:text-xl font-bold">ROZO Intents</h1>

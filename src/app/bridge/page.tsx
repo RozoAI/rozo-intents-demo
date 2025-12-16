@@ -11,10 +11,10 @@ export const metadata: Metadata = {
 export default function NewPage() {
   return (
     <div className="flex flex-col items-center gap-6 w-full">
+      <NewBridge />
       <div className="w-full max-w-xl">
         <AnalyticsCard />
       </div>
-      <NewBridge />
     </div>
   );
 }
