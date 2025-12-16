@@ -7,7 +7,7 @@ import { useState } from "react";
 
 export function AnalyticsCard() {
   const { data, isLoading, error } = useAnalytics();
-  const [view, setView] = useState<"today" | "last_7_days">("today");
+  const [view, setView] = useState<"today" | "last_7_days">("last_7_days");
 
   if (error) {
     return null;
@@ -24,14 +24,14 @@ export function AnalyticsCard() {
       ) : data ? (
         <>
           <div className="flex justify-center gap-2 mb-3 min-w-fit">
-            <Badge
+            {/* @NOTE: Use Yesterday cause data is in past day, but response is for today */}
+            {/* <Badge
               variant={view === "today" ? "default" : "outline"}
               className="cursor-pointer"
               onClick={() => setView("today")}
             >
-              {/* @NOTE: Use Yesterday cause data is in past day, but response is for today */}
               Yesterday
-            </Badge>
+            </Badge> */}
             <Badge
               variant={view === "last_7_days" ? "default" : "outline"}
               className="cursor-pointer"
