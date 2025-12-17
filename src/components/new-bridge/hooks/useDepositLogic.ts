@@ -5,6 +5,7 @@ import { IntentPayConfig } from "@/lib/intentPay";
 import {
   FeeType,
   PaymentCompletedEvent,
+  rozoStellarEURC,
   rozoStellarUSDC,
   TokenSymbol,
 } from "@rozoai/intent-common";
@@ -83,9 +84,13 @@ export function useDepositLogic({
         const config: IntentPayConfig = {
           appId: appId,
           feeType: feeType,
-          toChain: rozoStellarUSDC.chainId,
+          toChain: currency.includes(TokenSymbol.EURC)
+            ? rozoStellarEURC.chainId
+            : rozoStellarUSDC.chainId,
           toAddress: targetAddress,
-          toToken: rozoStellarUSDC.token,
+          toToken: currency.includes(TokenSymbol.EURC)
+            ? rozoStellarEURC.token
+            : rozoStellarUSDC.token,
           toUnits: amount,
           preferredSymbol: currency,
           metadata: {

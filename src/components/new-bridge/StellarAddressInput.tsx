@@ -13,6 +13,7 @@ interface StellarAddressInputProps {
   onTrustlineStatusChange?: (exists: boolean, balance: string) => void;
   error?: string;
   onErrorChange?: (error: string) => void;
+  currency?: "USDC" | "EURC";
 }
 
 export function StellarAddressInput({
@@ -21,6 +22,7 @@ export function StellarAddressInput({
   onTrustlineStatusChange,
   error,
   onErrorChange,
+  currency = "USDC",
 }: StellarAddressInputProps) {
   const [isCheckingTrustline, setIsCheckingTrustline] = useState(false);
   const [trustlineExists, setTrustlineExists] = useState(false);
@@ -41,13 +43,13 @@ export function StellarAddressInput({
 
       setIsCheckingTrustline(true);
       try {
-        const result = await checkTokenTrustline(address, "USDC");
+        const result = await checkTokenTrustline(address, currency);
         setTrustlineExists(result.exists);
         onTrustlineStatusChange?.(result.exists, result.balance);
 
         if (!result.exists) {
           onErrorChange?.(
-            "This Stellar address doesn't have a USDC trustline. The recipient needs to create one first."
+            `This Stellar address doesn't have a ${currency} trustline. The recipient needs to create one first.`
           );
         } else {
           onErrorChange?.("");
@@ -171,7 +173,7 @@ export function StellarAddressInput({
         <p className="text-xs text-green-600 dark:text-green-400">
           {isContractAddress(value)
             ? "✓ Valid Stellar contract address"
-            : "✓ USDC trustline verified"}
+            : `✓ ${currency} trustline verified`}
         </p>
       )}
     </div>

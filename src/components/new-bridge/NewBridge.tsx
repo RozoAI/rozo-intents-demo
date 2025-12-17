@@ -76,9 +76,12 @@ export function NewBridge() {
   );
 
   // Determine appId based on isAdmin
-  const appId = isAdmin
-    ? "rozoBridgeStellarAdmin"
-    : DEFAULT_INTENT_PAY_CONFIG.appId;
+  const appId =
+    stellarCurrency === "EURC"
+      ? "rozoEURC"
+      : isAdmin
+      ? "rozoBridgeStellarAdmin"
+      : DEFAULT_INTENT_PAY_CONFIG.appId;
 
   // Fetch fee from API using debounced amount
   const {
@@ -305,8 +308,7 @@ export function NewBridge() {
     const xlmBalanceNum = parseFloat(xlmBalance.balance);
     if (xlmBalanceNum < 1.5) {
       toast.error("Insufficient XLM balance", {
-        description:
-          "You need at least 1.5 XLM to create a USDC trustline. Please add more XLM to your wallet.",
+        description: `You need at least 1.5 XLM to create a ${stellarCurrency} trustline. Please add more XLM to your wallet.`,
         duration: 5000,
       });
       return;
@@ -483,12 +485,12 @@ export function NewBridge() {
                       <div className="space-y-3 flex-1">
                         <div>
                           <p className="font-medium text-red-900 dark:text-red-100 text-sm">
-                            USDC Trustline Required
+                            {stellarCurrency} Trustline Required
                           </p>
                           <p className="text-xs text-red-700 dark:text-red-200/80 mt-1">
                             Your Stellar wallet needs to establish a trustline
-                            for USDC to receive deposits. This is a one-time
-                            setup.
+                            for {stellarCurrency} to receive deposits. This is a
+                            one-time setup.
                           </p>
                         </div>
                         <Button
@@ -499,7 +501,7 @@ export function NewBridge() {
                         >
                           {trustlineStatus.checking
                             ? "Creating..."
-                            : "Create USDC Trustline"}
+                            : `Create ${stellarCurrency} Trustline`}
                         </Button>
                       </div>
                     </div>
@@ -513,8 +515,9 @@ export function NewBridge() {
                           Insufficient XLM Balance
                         </p>
                         <p className="text-xs text-orange-700 dark:text-orange-200/80">
-                          You need at least 1.5 XLM to create a USDC trustline.
-                          Current balance: {xlmBalance.balance} XLM
+                          You need at least 1.5 XLM to create a{" "}
+                          {stellarCurrency} trustline. Current balance:{" "}
+                          {xlmBalance.balance} XLM
                         </p>
                       </div>
                     </div>
@@ -525,6 +528,7 @@ export function NewBridge() {
               // Show manual Stellar address input if wallet is not connected
               <>
                 <StellarAddressInput
+                  currency={stellarCurrency}
                   value={manualStellarAddress.address}
                   onChange={manualStellarAddress.setAddress}
                   onTrustlineStatusChange={

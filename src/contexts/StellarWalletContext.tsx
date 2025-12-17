@@ -97,7 +97,6 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
     null
   );
 
-  // USDC trustline state
   const [trustlineStatus, setTrustlineStatus] = useState<TrustlineStatus>({
     exists: false,
     balance: "0",

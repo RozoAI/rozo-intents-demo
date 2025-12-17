@@ -6,16 +6,20 @@ import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 export function TrustlineWarning() {
-  const { createTrustline, trustlineStatus, xlmBalance, stellarConnected } =
-    useStellarWallet();
+  const {
+    createTrustline,
+    trustlineStatus,
+    xlmBalance,
+    stellarConnected,
+    currency,
+  } = useStellarWallet();
 
   const handleCreateTrustline = async () => {
     // Check XLM balance before creating trustline
     const xlmBalanceNum = parseFloat(xlmBalance.balance);
     if (xlmBalanceNum < 1.5) {
       toast.error("Insufficient XLM balance", {
-        description:
-          "You need at least 1.5 XLM to create a USDC trustline. Please add more XLM to your wallet.",
+        description: `You need at least 1.5 XLM to create a ${currency} trustline. Please add more XLM to your wallet.`,
         duration: 5000,
       });
       return;
@@ -26,11 +30,7 @@ export function TrustlineWarning() {
   };
 
   // Don't show if checking, has trustline, or not connected
-  if (
-    !stellarConnected ||
-    trustlineStatus.checking ||
-    trustlineStatus.exists
-  ) {
+  if (!stellarConnected || trustlineStatus.checking || trustlineStatus.exists) {
     return null;
   }
 
@@ -40,15 +40,15 @@ export function TrustlineWarning() {
     return (
       <div className="p-4 rounded-xl border border-red-500/20 bg-red-50 dark:bg-red-500/10">
         <div className="flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+          <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" />
           <div className="space-y-3 flex-1">
             <div>
               <p className="font-medium text-red-900 dark:text-red-100 text-sm">
-                USDC Trustline Required
+                {currency} Trustline Required
               </p>
               <p className="text-xs text-red-700 dark:text-red-200/80 mt-1">
-                Your Stellar wallet needs to establish a trustline for USDC to
-                receive deposits. This is a one-time setup.
+                Your Stellar wallet needs to establish a trustline for{" "}
+                {currency} to receive deposits. This is a one-time setup.
               </p>
             </div>
             <Button
@@ -59,7 +59,7 @@ export function TrustlineWarning() {
             >
               {trustlineStatus.checking
                 ? "Creating..."
-                : "Create USDC Trustline"}
+                : `Create ${currency} Trustline`}
             </Button>
           </div>
         </div>
@@ -70,13 +70,13 @@ export function TrustlineWarning() {
   return (
     <div className="p-4 rounded-xl border border-orange-500/20 bg-orange-50 dark:bg-orange-500/10">
       <div className="flex items-start gap-3">
-        <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+        <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 mt-0.5" />
         <div className="space-y-1">
           <p className="font-medium text-orange-900 dark:text-orange-100 text-sm">
             Insufficient XLM Balance
           </p>
           <p className="text-xs text-orange-700 dark:text-orange-200/80">
-            You need at least 1.5 XLM to create a USDC trustline. Current
+            You need at least 1.5 XLM to create a {currency} trustline. Current
             balance: {xlmBalance.balance} XLM
           </p>
         </div>
@@ -84,4 +84,3 @@ export function TrustlineWarning() {
     </div>
   );
 }
-
