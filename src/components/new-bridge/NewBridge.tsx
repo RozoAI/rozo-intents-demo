@@ -51,19 +51,18 @@ export function NewBridge() {
     base.chainId
   );
 
-  const searchParams = useSearchParams();
-  const isAdmin = searchParams.get("admin") === "rozo";
-  const isCurrencyEUR =
-    searchParams.get("currency") === "EURC" ||
-    searchParams.get("currency") === "eurc";
-
   const {
+    currency: stellarCurrency,
     stellarConnected,
     stellarAddress,
     trustlineStatus,
     xlmBalance,
     createTrustline,
   } = useStellarWallet();
+  const isCurrencyEUR = stellarCurrency === "EURC";
+
+  const searchParams = useSearchParams();
+  const isAdmin = searchParams.get("admin") === "rozo";
 
   const hideTrustlineWarning = useMemo(() => {
     return (
