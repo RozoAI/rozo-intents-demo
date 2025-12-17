@@ -1,6 +1,6 @@
 "use client";
 
-import { checkUSDCTrustline, USDC_ASSET } from "@/lib/stellar";
+import { checkTokenTrustline, EURC_ASSET, USDC_ASSET } from "@/lib/stellar";
 import { setupCryptoPolyfill } from "@/utils/polyfills";
 import {
   AlbedoModule,
@@ -25,6 +25,7 @@ import {
   Operation,
   TransactionBuilder,
 } from "@stellar/stellar-sdk";
+import { useSearchParams } from "next/navigation";
 import {
   createContext,
   ReactNode,
@@ -54,7 +55,8 @@ interface StellarWalletContextType {
   disconnectStellarWallet: () => void;
   stellarKit: StellarWalletsKit | null;
   stellarWalletName: string | null;
-  // USDC trustline management
+  // Token trustline management (USDC or EURC)
+  currency: "USDC" | "EURC";
   trustlineStatus: TrustlineStatus;
   checkTrustline: () => Promise<void>;
   createTrustline: () => Promise<void>;
@@ -79,6 +81,9 @@ interface StoredWalletData {
 
 export function StellarWalletProvider({ children }: { children: ReactNode }) {
   const server = new Horizon.Server("https://horizon.stellar.org");
+
+  const searchParams = useSearchParams();
+  const currency = (searchParams.get("currency") as "USDC" | "EURC") ?? "USDC";
 
   const [stellarAddress, setStellarAddress] = useState("");
   const [stellarConnected, setStellarConnected] = useState(false);
@@ -186,7 +191,7 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Check USDC trustline
+  // Check token trustline (USDC or EURC)
   const checkTrustline = async () => {
     if (!stellarConnected || !stellarAddress) {
       setTrustlineStatus({ exists: false, balance: "0", checking: false });
@@ -196,7 +201,7 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
     setTrustlineStatus((prev) => ({ ...prev, checking: true }));
 
     try {
-      const result = await checkUSDCTrustline(stellarAddress);
+      const result = await checkTokenTrustline(stellarAddress, currency);
       setTrustlineStatus({
         exists: result.exists,
         balance: result.balance,
@@ -209,11 +214,11 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
         balance: "0",
         checking: false,
       });
-      toast.error("Failed to check USDC trustline");
+      toast.error(`Failed to check ${currency} trustline`);
     }
   };
 
-  // Create USDC trustline
+  // Create token trustline (USDC or EURC)
   const createTrustline = async (): Promise<void> => {
     if (!stellarKit || !stellarAddress) {
       toast.error("Wallet not connected");
@@ -224,6 +229,9 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
       // Refresh account info to get latest sequence number
       const freshAccount = await server.loadAccount(stellarAddress);
 
+      // Select asset based on currency
+      const asset = currency === "EURC" ? EURC_ASSET : USDC_ASSET;
+
       // Build transaction with fresh account data
       const transactionBuilder = new TransactionBuilder(freshAccount, {
         fee: BASE_FEE,
@@ -231,7 +239,7 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
       })
         .addOperation(
           Operation.changeTrust({
-            asset: new Asset(USDC_ASSET.code, USDC_ASSET.issuer),
+            asset: new Asset(asset.code, asset.issuer),
           })
         )
         .setTimeout(300)
@@ -249,14 +257,14 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
       // Submit signed transaction to Stellar network
       await server.submitTransaction(signedTx);
 
-      toast.success("USDC trustline created successfully!");
+      toast.success(`${currency} trustline created successfully!`);
 
       // Refresh balances after successful creation
       await checkXlmBalance();
       await checkTrustline();
     } catch (error) {
       console.error("Failed to create trustline:", error);
-      toast.error("Failed to create USDC trustline. Please try again.");
+      toast.error(`Failed to create ${currency} trustline. Please try again.`);
     }
   };
 
@@ -285,7 +293,9 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
         method: WalletConnectAllowedMethods.SIGN,
         description: "ROZO Intents - Transfer USDC across chains",
         name: "ROZO Intents",
-        icons: ["https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/fdfef53e-91c2-4abc-aec0-6902a26d6c00/80x"],
+        icons: [
+          "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/fdfef53e-91c2-4abc-aec0-6902a26d6c00/80x",
+        ],
         network: WalletNetwork.PUBLIC,
       }),
     ];
@@ -331,7 +341,7 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
           // Address mismatch or connection failed, clear stored data
           clearStoredWallet();
         }
-      } catch (error) {
+      } catch {
         // Clear stored data if auto-reconnect fails
         clearStoredWallet();
       }
@@ -340,7 +350,7 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
     autoReconnect();
   }, [isInitialized, stellarKit]);
 
-  // Check balances when wallet connects
+  // Check balances when wallet connects or currency changes
   useEffect(() => {
     if (stellarConnected && stellarAddress) {
       checkTrustline();
@@ -350,7 +360,7 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
       setTrustlineStatus({ exists: false, balance: "0", checking: false });
       setXlmBalance({ balance: "0", checking: false });
     }
-  }, [stellarConnected, stellarAddress]);
+  }, [stellarConnected, stellarAddress, currency]);
 
   const connectStellarWallet = async () => {
     if (!stellarKit) {
@@ -459,7 +469,8 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
         disconnectStellarWallet,
         stellarKit,
         stellarWalletName,
-        // USDC trustline management
+        // Token trustline management (USDC or EURC)
+        currency,
         trustlineStatus,
         checkTrustline,
         createTrustline,

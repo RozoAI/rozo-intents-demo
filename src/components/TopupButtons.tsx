@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useStellarWallet } from "@/contexts/StellarWalletContext";
-import { checkUSDCTrustline } from "@/lib/stellar";
+import { checkTokenTrustline } from "@/lib/stellar";
 import { formatStellarAddress } from "@/utils/address";
 import { isValidStellarAddress } from "@rozoai/intent-common";
 import {
@@ -64,7 +64,7 @@ export function TopupButtons({ onAddressSelected }: TopupButtonsProps) {
     setTrustlineError(null);
 
     try {
-      const result = await checkUSDCTrustline(address);
+      const result = await checkTokenTrustline(address, "USDC");
       setTrustlineResult(result);
     } catch (error) {
       console.error("Failed to check USDC trustline:", error);

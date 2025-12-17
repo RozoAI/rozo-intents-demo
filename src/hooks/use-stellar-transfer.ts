@@ -1,8 +1,9 @@
 import { useStellarWallet } from "@/contexts/StellarWalletContext";
 import { DEFAULT_INTENT_PAY_CONFIG } from "@/lib/intentPay";
-import { USDC_ASSET } from "@/lib/stellar";
+import { EURC_ASSET, USDC_ASSET } from "@/lib/stellar";
 import { StellarPayNow } from "@/lib/stellar-pay";
 import {
+  baseEURC,
   baseUSDC,
   createPayment,
   ethereumUSDC,
@@ -10,6 +11,7 @@ import {
   getChainById,
   PaymentResponse,
   polygonUSDC,
+  rozoStellarEURC,
   rozoStellarUSDC,
   solanaUSDC,
   Token,
@@ -30,6 +32,7 @@ type Payload = {
   amount: string;
   address: string;
   chainId: number;
+  currency: "USDC" | "EURC";
 };
 
 // Helper function to get the destination token based on chain ID
@@ -76,9 +79,12 @@ export const useStellarTransfer = (
       if (account && publicKey && server) {
         // Bridge mode: Use API flow
         setStep("create-payment");
-        const appId = isAdmin
-          ? "rozoBridgeStellarAdmin"
-          : DEFAULT_INTENT_PAY_CONFIG.appId;
+        const appId =
+          payload.currency === "EURC"
+            ? "rozoEURC"
+            : isAdmin
+            ? "rozoBridgeStellarAdmin"
+            : DEFAULT_INTENT_PAY_CONFIG.appId;
 
         const payAmount =
           feeType === FeeType.ExactIn
@@ -86,28 +92,39 @@ export const useStellarTransfer = (
             : (Number(payload.amount) - Number(payload.feeAmount)).toFixed(2);
 
         // Get destination token based on chain ID
-        const destinationToken = getDestinationToken(payload.chainId);
+        const destinationToken =
+          payload.currency === "EURC"
+            ? baseEURC
+            : getDestinationToken(payload.chainId);
         const destinationChain = getChainById(destinationToken.chainId);
 
-        const payment = await createPayment({
+        const paymentBody = {
           appId,
           feeType,
           toChain: destinationToken.chainId,
           toToken: destinationToken.token,
           toAddress: payload.address,
           toUnits: payAmount,
-          preferredChain: rozoStellarUSDC.chainId,
-          preferredTokenAddress: rozoStellarUSDC.token,
+          preferredChain:
+            payload.currency === "EURC"
+              ? rozoStellarEURC.chainId
+              : rozoStellarUSDC.chainId,
+          preferredTokenAddress:
+            payload.currency === "EURC"
+              ? rozoStellarEURC.token
+              : rozoStellarUSDC.token,
           metadata: {
             intent: "Withdraw",
             items: [
               {
                 name: "ROZO Intents",
-                description: `Transfer USDC from Stellar to ${destinationChain?.name}`,
+                description: `Transfer ${payload.currency} from Stellar to ${destinationChain?.name}`,
               },
             ],
           },
-        });
+        };
+
+        const payment = await createPayment(paymentBody);
 
         if (payment.id && payment.source.receiverAddress) {
           setPaymentId(payment.id);
@@ -119,8 +136,14 @@ export const useStellarTransfer = (
                 publicKey,
                 server,
                 token: {
-                  key: USDC_ASSET.code,
-                  address: USDC_ASSET.issuer,
+                  key:
+                    payload.currency === "EURC"
+                      ? EURC_ASSET.code
+                      : USDC_ASSET.code,
+                  address:
+                    payload.currency === "EURC"
+                      ? EURC_ASSET.issuer
+                      : USDC_ASSET.issuer,
                 },
                 order: {
                   address: payment.source.receiverAddress,

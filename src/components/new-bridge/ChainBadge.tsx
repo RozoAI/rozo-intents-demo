@@ -7,6 +7,7 @@ import {
   rozoSolana,
   rozoStellar,
   TokenLogo,
+  TokenSymbol,
 } from "@rozoai/intent-common";
 import Image from "next/image";
 import ChainsStacked from "../ChainStacked";
@@ -16,12 +17,43 @@ import ChainsStacked from "../ChainStacked";
 interface ChainBadgeProps {
   isSwitched: boolean;
   isFrom: boolean;
+  preferredSymbol?: TokenSymbol[];
   className?: string;
 }
 
-export function ChainBadge({ isSwitched, isFrom, className }: ChainBadgeProps) {
+export function ChainBadge({
+  isSwitched,
+  isFrom,
+  preferredSymbol,
+  className,
+}: ChainBadgeProps) {
+  const isCurrencyEUR = preferredSymbol?.includes(TokenSymbol.EURC);
+
   // Determine which chains to show based on position and switch state
   const getExcludeChains = () => {
+    // For EURC: Deposit from Stellar only, Withdraw to Base only
+    if (isCurrencyEUR) {
+      if (!isSwitched && isFrom) {
+        // Deposit: From Stellar only (exclude all other chains)
+        return [
+          rozoStellar.chainId,
+          rozoSolana.chainId,
+          ethereum.chainId,
+          bsc.chainId,
+          polygon.chainId,
+        ];
+      } else if (isSwitched && !isFrom) {
+        // Withdraw: To Base only (exclude all other chains)
+        return [
+          rozoStellar.chainId,
+          rozoSolana.chainId,
+          ethereum.chainId,
+          bsc.chainId,
+          polygon.chainId,
+        ];
+      }
+    }
+
     if (!isSwitched) {
       // From: Base/Solana/Polygon, To: Stellar
       return isFrom
@@ -54,7 +86,16 @@ export function ChainBadge({ isSwitched, isFrom, className }: ChainBadgeProps) {
   };
 
   const getTokenSymbol = () => {
-    return !isSwitched && isFrom ? "USDC/USDT" : "USDC";
+    return !isSwitched && isFrom && !isCurrencyEUR
+      ? preferredSymbol?.join("/")
+      : preferredSymbol?.[0];
+  };
+
+  const getTokenLogo = () => {
+    if (isCurrencyEUR) {
+      return TokenLogo.EURC;
+    }
+    return TokenLogo.USDC;
   };
 
   return (
@@ -65,13 +106,13 @@ export function ChainBadge({ isSwitched, isFrom, className }: ChainBadgeProps) {
       )}
     >
       <Image
-        src={TokenLogo.USDC}
-        alt="USDC"
+        src={getTokenLogo()}
+        alt={isCurrencyEUR ? "EURC" : "USDC"}
         width={20}
         height={20}
         className="w-5 h-5 sm:w-6 sm:h-6 z-10"
       />
-      {!isSwitched && isFrom && (
+      {!isSwitched && isFrom && !isCurrencyEUR && (
         <Image
           src={TokenLogo.USDT}
           alt="USDT"

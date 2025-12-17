@@ -6,6 +6,7 @@ import {
   FeeType,
   PaymentCompletedEvent,
   rozoStellarUSDC,
+  TokenSymbol,
 } from "@rozoai/intent-common";
 import { useRozoPayUI } from "@rozoai/intent-pay";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,6 +22,7 @@ interface UseDepositLogicProps {
   feeType: FeeType;
   destinationStellarAddress?: string;
   manualTrustlineExists?: boolean;
+  currency: TokenSymbol[];
 }
 
 export function useDepositLogic({
@@ -31,6 +33,7 @@ export function useDepositLogic({
   destinationStellarAddress,
   manualTrustlineExists = false,
   isAdmin = false,
+  currency = [TokenSymbol.USDC, TokenSymbol.USDT],
 }: UseDepositLogicProps) {
   const {
     stellarConnected,
@@ -84,6 +87,7 @@ export function useDepositLogic({
           toAddress: targetAddress,
           toToken: rozoStellarUSDC.token,
           toUnits: amount,
+          preferredSymbol: currency,
           metadata: {
             intent: "Deposit",
             items: [

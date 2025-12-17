@@ -2,13 +2,22 @@
 
 import { useStellarWallet } from "@/contexts/StellarWalletContext";
 import { cn } from "@/lib/utils";
+import { TokenSymbol } from "@rozoai/intent-common";
 import { RefreshCw } from "lucide-react";
 
-export function StellarBalanceCard() {
-  const { stellarConnected, trustlineStatus, checkTrustline } =
-    useStellarWallet();
+export function StellarBalanceCard({ currency }: { currency: TokenSymbol }) {
+  const {
+    stellarConnected,
+    trustlineStatus,
+    checkTrustline,
+    currency: contextCurrency,
+  } = useStellarWallet();
 
   if (!stellarConnected) return null;
+
+  // Use currency from context, fallback to prop for display
+  const currencyCode =
+    contextCurrency || (currency === TokenSymbol.EURC ? "EURC" : "USDC");
 
   return (
     <div className="mb-3 sm:mb-4 flex items-center justify-between bg-neutral-100 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-neutral-200 dark:bg-neutral-800/30 dark:border-neutral-700/30">
@@ -29,7 +38,7 @@ export function StellarBalanceCard() {
                 maximumFractionDigits: 2,
               })}{" "}
               <span className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400">
-                USDC
+                {currencyCode}
               </span>
             </span>
           </div>

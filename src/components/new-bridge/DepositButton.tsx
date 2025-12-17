@@ -58,6 +58,7 @@ export function DepositButton({
         metadata={intentConfig.metadata as never}
         feeType={intentConfig.feeType}
         receiverMemo={intentConfig.receiverMemo || ""}
+        preferredSymbol={intentConfig.preferredSymbol}
         onPaymentCompleted={onPaymentCompleted}
         onPayoutCompleted={checkTrustline}
         showProcessingPayout

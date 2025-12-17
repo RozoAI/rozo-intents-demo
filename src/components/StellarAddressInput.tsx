@@ -3,7 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { useStellarWallet } from "@/contexts/StellarWalletContext";
 import {
-  checkUSDCTrustline,
+  checkTokenTrustline,
   isMuxedAddress,
   normalizeStellarAddress,
 } from "@/lib/stellar";
@@ -126,8 +126,9 @@ export function StellarAddressInput({
       setTrustlineState((prev) => ({ ...prev, checking: true, error: null }));
 
       try {
-        const result = await checkUSDCTrustline(
-          validationState.normalizedAddress
+        const result = await checkTokenTrustline(
+          validationState.normalizedAddress,
+          "USDC"
         );
         setTrustlineState({
           exists: result.exists,

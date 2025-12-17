@@ -1,7 +1,7 @@
 "use client";
 
 import { Label } from "@/components/ui/label";
-import { checkUSDCTrustline, isContractAddress } from "@/lib/stellar";
+import { checkTokenTrustline, isContractAddress } from "@/lib/stellar";
 import { isValidStellarAddress } from "@rozoai/intent-common";
 import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 import { useCallback, useState } from "react";
@@ -41,7 +41,7 @@ export function StellarAddressInput({
 
       setIsCheckingTrustline(true);
       try {
-        const result = await checkUSDCTrustline(address);
+        const result = await checkTokenTrustline(address, "USDC");
         setTrustlineExists(result.exists);
         onTrustlineStatusChange?.(result.exists, result.balance);
 

@@ -4,7 +4,7 @@ import { useStellarWallet } from "@/contexts/StellarWalletContext";
 import { GetFeeError, useGetFee } from "@/hooks/use-get-fee";
 import { formatNumber } from "@/lib/formatNumber";
 import { DEFAULT_INTENT_PAY_CONFIG } from "@/lib/intentPay";
-import { base, FeeType } from "@rozoai/intent-common";
+import { base, FeeType, TokenSymbol } from "@rozoai/intent-common";
 import { AlertTriangle, Clock, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -53,6 +53,9 @@ export function NewBridge() {
 
   const searchParams = useSearchParams();
   const isAdmin = searchParams.get("admin") === "rozo";
+  const isCurrencyEUR =
+    searchParams.get("currency") === "EURC" ||
+    searchParams.get("currency") === "eurc";
 
   const {
     stellarConnected,
@@ -87,7 +90,7 @@ export function NewBridge() {
     {
       amount: parseFloat(debouncedAmount || "0"),
       appId,
-      currency: "USDC",
+      currency: isCurrencyEUR ? "EUR" : "USD",
       type: feeType,
     },
     {
@@ -98,6 +101,8 @@ export function NewBridge() {
 
   // Extract fee error details
   const feeErrorData = feeError as GetFeeError | null;
+
+  const currency = isCurrencyEUR ? TokenSymbol.EURC : TokenSymbol.USDC;
 
   // Check if there's any history for the current wallet
   const hasHistory = useMemo(() => {
@@ -111,14 +116,14 @@ export function NewBridge() {
       return "Calculating...";
     }
     if (!feeData) {
-      return "0 USDC";
+      return `0 ${currency}`;
     }
 
     if (feeData.fee === 0) {
       return "Free";
     }
 
-    return `${formatNumber(feeData.fee.toString())} USDC`;
+    return `${formatNumber(feeData.fee.toString())} ${currency}`;
   }, [feeData, isFeeLoading]);
 
   // Only show fee data if it matches the current input
@@ -255,6 +260,7 @@ export function NewBridge() {
 
   // Use withdraw logic hook (when isSwitched = true)
   const { handleWithdraw } = useWithdrawLogic({
+    currency,
     amount: fromAmount,
     feeAmount: feeData?.fee.toFixed(2) || "0",
     destinationAddress,
@@ -277,6 +283,9 @@ export function NewBridge() {
         ? undefined
         : manualStellarAddress.address,
       manualTrustlineExists: manualStellarAddress.trustlineExists,
+      currency: isCurrencyEUR
+        ? [TokenSymbol.EURC]
+        : [TokenSymbol.USDC, TokenSymbol.USDT],
     });
 
   const handleSwitch = () => {
@@ -345,6 +354,13 @@ export function NewBridge() {
     }
   }, [calculatedAmount, feeType]);
 
+  // Lock destination chain to Base when EURC is active in withdraw mode
+  useEffect(() => {
+    if (isCurrencyEUR && isSwitched) {
+      setDestinationChainId(base.chainId);
+    }
+  }, [isCurrencyEUR, isSwitched]);
+
   return (
     <div className="w-full max-w-xl mx-auto">
       <div className="rounded-2xl sm:rounded-3xl p-3 sm:p-6 md:p-8 bg-neutral-50 border border-neutral-200 dark:bg-neutral-900 dark:border-neutral-800 shadow-lg">
@@ -370,12 +386,13 @@ export function NewBridge() {
         </div>
 
         {/* Stellar USDC Balance */}
-        <StellarBalanceCard />
+        <StellarBalanceCard currency={currency} />
 
         {/* From Section */}
         <BridgeCard>
           <div className="flex-1">
             <TokenAmountInput
+              currency={currency}
               label="From"
               amount={fromAmount}
               setAmount={(value) => {
@@ -392,6 +409,11 @@ export function NewBridge() {
           <ChainBadge
             isSwitched={isSwitched}
             isFrom={true}
+            preferredSymbol={
+              isCurrencyEUR
+                ? [TokenSymbol.EURC]
+                : [TokenSymbol.USDC, TokenSymbol.USDT]
+            }
             className="absolute top-2 right-2"
           />
         </BridgeCard>
@@ -402,6 +424,7 @@ export function NewBridge() {
         {/* To Section */}
         <BridgeCard>
           <TokenAmountInput
+            currency={currency}
             label="To"
             amount={toAmount}
             setAmount={(value) => {
@@ -410,10 +433,15 @@ export function NewBridge() {
             }}
           />
 
-          {!isSwitched ? (
+          {!isSwitched || isCurrencyEUR ? (
             <ChainBadge
               isSwitched={isSwitched}
               isFrom={false}
+              preferredSymbol={
+                isCurrencyEUR
+                  ? [TokenSymbol.EURC]
+                  : [TokenSymbol.USDC, TokenSymbol.USDT]
+              }
               className="absolute top-2 right-2"
             />
           ) : (

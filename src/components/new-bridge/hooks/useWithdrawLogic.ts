@@ -9,6 +9,7 @@ import { useEffect, useRef } from "react";
 import { saveStellarHistory } from "../utils/history";
 
 interface UseWithdrawLogicProps {
+  currency: "USDC" | "EURC";
   amount: string | undefined;
   feeAmount: string | undefined;
   destinationAddress: string;
@@ -19,6 +20,7 @@ interface UseWithdrawLogicProps {
 }
 
 export function useWithdrawLogic({
+  currency = "USDC",
   amount,
   feeAmount,
   destinationAddress,
@@ -184,6 +186,7 @@ export function useWithdrawLogic({
       const result = await transfer({
         amount,
         feeAmount,
+        currency,
         address: destinationAddress,
         chainId: destinationChainId,
       });
