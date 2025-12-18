@@ -94,15 +94,16 @@ export function useWithdrawLogic({
               }
             })();
 
-            saveStellarHistory(
-              stellarAddress,
-              paymentId,
-              amount,
-              destinationAddress,
-              "withdraw",
-              "Stellar",
-              destinationChainName
-            );
+            saveStellarHistory({
+              walletAddress: stellarAddress,
+              paymentId: paymentId,
+              amount: amount,
+              destinationAddress: destinationAddress,
+              type: "withdraw",
+              fromChain: "Stellar",
+              toChain: destinationChainName,
+              currency: currency,
+            });
 
             // Dispatch custom event to update history
             window.dispatchEvent(new CustomEvent("stellar-payment-completed"));

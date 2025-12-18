@@ -8,6 +8,7 @@ export interface StellarHistoryItem {
   toChain: "Stellar" | "Base" | "Ethereum" | "Polygon" | "Solana";
   completedAt: string;
   walletAddress: string;
+  currency: "USDC" | "EURC";
 }
 
 export interface StellarHistoryStorage {
@@ -16,15 +17,25 @@ export interface StellarHistoryStorage {
 
 export const ROZO_STELLAR_HISTORY_STORAGE_KEY = "rozo_stellar_history";
 
-export const saveStellarHistory = (
-  walletAddress: string,
-  paymentId: string,
-  amount: string,
-  destinationAddress: string,
-  type: "deposit" | "withdraw",
-  fromChain: "Stellar" | "Base" | "Ethereum" | "Polygon" | "Solana",
-  toChain: "Stellar" | "Base" | "Ethereum" | "Polygon" | "Solana"
-): void => {
+export const saveStellarHistory = ({
+  walletAddress,
+  paymentId,
+  amount,
+  destinationAddress,
+  type,
+  fromChain,
+  toChain,
+  currency = "USDC",
+}: {
+  walletAddress: string;
+  paymentId: string;
+  amount: string;
+  destinationAddress: string;
+  type: "deposit" | "withdraw";
+  fromChain: "Stellar" | "Base" | "Ethereum" | "Polygon" | "Solana";
+  toChain: "Stellar" | "Base" | "Ethereum" | "Polygon" | "Solana";
+  currency?: "USDC" | "EURC";
+}): void => {
   try {
     const existingData = getStellarHistory();
 
@@ -48,6 +59,7 @@ export const saveStellarHistory = (
       toChain,
       completedAt: new Date().toISOString(),
       walletAddress,
+      currency,
     };
 
     const updatedData: StellarHistoryStorage = {

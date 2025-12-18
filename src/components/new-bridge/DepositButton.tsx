@@ -24,7 +24,7 @@ export function DepositButton({
   hasFeeError = false,
   onPaymentCompleted,
 }: DepositButtonProps) {
-  const { checkTrustline } = useStellarWallet();
+  const { checkTrustline, currency } = useStellarWallet();
 
   // Show disabled button while preparing config, loading fee, or has fee error
   if (isPreparingConfig || isFeeLoading || hasFeeError || !intentConfig) {
@@ -41,7 +41,7 @@ export function DepositButton({
           ? "Loading fee..."
           : isPreparingConfig
           ? "Preparing..."
-          : "Bridge USDC to Stellar"}
+          : `Bridge ${currency} to Stellar`}
       </Button>
     );
   }
@@ -70,7 +70,7 @@ export function DepositButton({
             size="lg"
             className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl cursor-pointer"
           >
-            Bridge USDC to Stellar
+            Bridge {currency} to Stellar
           </Button>
         )}
       </RozoPayButton.Custom>
@@ -84,7 +84,7 @@ export function DepositButton({
       className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl cursor-not-allowed"
       disabled
     >
-      Bridge USDC to Stellar
+      Bridge {currency} to Stellar
     </Button>
   );
 }
