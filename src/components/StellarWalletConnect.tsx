@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useStellarWallet } from "@/contexts/StellarWalletContext";
 import { cn } from "@/lib/utils";
+import { TokenLogo } from "@rozoai/intent-common";
 import {
   AlertTriangle,
   ChevronDown,
@@ -35,7 +36,8 @@ export function StellarWalletConnect({ className }: StellarWalletConnectProps) {
     connectStellarWallet,
     disconnectStellarWallet,
     stellarWalletName,
-    trustlineStatus,
+    usdcTrustline,
+    eurcTrustline,
     xlmBalance,
     createTrustline,
     checkXlmBalance,
@@ -75,11 +77,14 @@ export function StellarWalletConnect({ className }: StellarWalletConnectProps) {
     }
   };
 
-  const handleCreateTrustline = async () => {
+  const handleCreateTrustline = async (currency?: "USDC" | "EURC") => {
     try {
-      await createTrustline();
+      await createTrustline(currency);
     } catch (error) {
-      console.error("Failed to create trustline:", error);
+      console.error(
+        `Failed to create ${currency || "token"} trustline:`,
+        error
+      );
     }
   };
 
@@ -126,7 +131,9 @@ export function StellarWalletConnect({ className }: StellarWalletConnectProps) {
         <div className="p-2.5 sm:p-3 border-b">
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-medium text-sm sm:text-base">Stellar Connected</div>
+              <div className="font-medium text-sm sm:text-base">
+                Stellar Connected
+              </div>
               <div className="text-xs sm:text-sm text-muted-foreground font-mono mt-0.5 sm:mt-1 font-medium">
                 {formatStellarAddress(stellarAddress)}
               </div>
@@ -140,12 +147,18 @@ export function StellarWalletConnect({ className }: StellarWalletConnectProps) {
                 size="sm"
                 onClick={handleRefreshBalances}
                 className="h-7 w-7 sm:h-8 sm:w-8 p-0"
-                disabled={xlmBalance.checking || trustlineStatus.checking}
+                disabled={
+                  xlmBalance.checking ||
+                  usdcTrustline.checking ||
+                  eurcTrustline.checking
+                }
               >
                 <RefreshCw
                   className={cn(
                     "size-3.5 sm:size-4",
-                    (xlmBalance.checking || trustlineStatus.checking) &&
+                    (xlmBalance.checking ||
+                      usdcTrustline.checking ||
+                      eurcTrustline.checking) &&
                       "animate-spin"
                   )}
                 />
@@ -163,7 +176,7 @@ export function StellarWalletConnect({ className }: StellarWalletConnectProps) {
         </div>
 
         {/* Balances */}
-        <div className="p-2.5 sm:p-3 border-b space-y-2.5 sm:space-y-3">
+        <div className="p-2.5 sm:p-3 border-b space-y-2.5 sm:space-y-4">
           {/* XLM Balance */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 sm:gap-2">
@@ -183,42 +196,114 @@ export function StellarWalletConnect({ className }: StellarWalletConnectProps) {
           <div className="space-y-1.5 sm:space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <Image src="/usdc.svg" alt="USDC" width={18} height={18} className="w-[18px] h-[18px] sm:w-5 sm:h-5" />
+                <Image
+                  src={TokenLogo.USDC}
+                  alt="USDC"
+                  width={18}
+                  height={18}
+                  className="w-[18px] h-[18px] sm:w-5 sm:h-5 rounded-full"
+                />
                 <span className="text-xs sm:text-sm font-medium">USDC</span>
               </div>
-              {trustlineStatus.checking ? (
+              {usdcTrustline.checking ? (
                 <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
-              ) : trustlineStatus.exists ? (
+              ) : usdcTrustline.exists ? (
                 <span className="text-xs sm:text-sm font-mono">
-                  {Number(trustlineStatus.balance).toFixed(2)} USDC
+                  {Number(usdcTrustline.balance).toFixed(2)} USDC
                 </span>
               ) : (
                 <div className="text-[10px] sm:text-xs text-yellow-600 flex items-center gap-0.5 sm:gap-1">
                   <AlertTriangle className="inline w-3 h-3 sm:w-4 sm:h-4 text-yellow-500" />
-                  USDC trustline required
+                  Trustline required
                 </div>
               )}
             </div>
 
-            {!trustlineStatus.checking && !trustlineStatus.exists && (
+            {!usdcTrustline.checking && !usdcTrustline.exists && (
               <div className="space-y-1.5 sm:space-y-2">
                 {xlmBalance.checking ? (
                   <div className="text-[10px] sm:text-xs text-gray-500 flex items-center gap-1">
                     <Loader2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 animate-spin" />
-                    Checking XLM balance...
+                    Checking XLM...
                   </div>
                 ) : parseFloat(xlmBalance.balance) >= 1.5 ? (
                   <Button
                     size="sm"
-                    onClick={handleCreateTrustline}
+                    onClick={() => handleCreateTrustline("USDC")}
                     className="w-full h-6 sm:h-7 text-[10px] sm:text-xs"
+                    disabled={usdcTrustline.creating}
                   >
-                    <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                    Add USDC Trustline
+                    {usdcTrustline.creating ? (
+                      <Loader2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 animate-spin" />
+                    ) : (
+                      <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                    )}
+                    {usdcTrustline.creating
+                      ? "Adding USDC..."
+                      : "Add USDC Trustline"}
                   </Button>
                 ) : (
                   <div className="text-[10px] sm:text-xs text-red-600">
-                    Need at least 1.5 XLM for trustline creation
+                    Need 1.5 XLM for trustline
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* EURC Trustline Status */}
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Image
+                  src={TokenLogo.EURC}
+                  alt="EURC"
+                  width={18}
+                  height={18}
+                  className="w-[18px] h-[18px] sm:w-5 sm:h-5 rounded-full"
+                />
+                <span className="text-xs sm:text-sm font-medium">EURC</span>
+              </div>
+              {eurcTrustline.checking ? (
+                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+              ) : eurcTrustline.exists ? (
+                <span className="text-xs sm:text-sm font-mono">
+                  {Number(eurcTrustline.balance).toFixed(2)} EURC
+                </span>
+              ) : (
+                <div className="text-[10px] sm:text-xs text-yellow-600 flex items-center gap-0.5 sm:gap-1">
+                  <AlertTriangle className="inline w-3 h-3 sm:w-4 sm:h-4 text-yellow-500" />
+                  Trustline required
+                </div>
+              )}
+            </div>
+
+            {!eurcTrustline.checking && !eurcTrustline.exists && (
+              <div className="space-y-1.5 sm:space-y-2">
+                {xlmBalance.checking ? (
+                  <div className="text-[10px] sm:text-xs text-gray-500 flex items-center gap-1">
+                    <Loader2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 animate-spin" />
+                    Checking XLM...
+                  </div>
+                ) : parseFloat(xlmBalance.balance) >= 1.5 ? (
+                  <Button
+                    size="sm"
+                    onClick={() => handleCreateTrustline("EURC")}
+                    className="w-full h-6 sm:h-7 text-[10px] sm:text-xs"
+                    disabled={eurcTrustline.creating}
+                  >
+                    {eurcTrustline.creating ? (
+                      <Loader2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 animate-spin" />
+                    ) : (
+                      <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                    )}
+                    {eurcTrustline.creating
+                      ? "Adding EURC..."
+                      : "Add EURC Trustline"}
+                  </Button>
+                ) : (
+                  <div className="text-[10px] sm:text-xs text-red-600">
+                    Need 1.5 XLM for trustline
                   </div>
                 )}
               </div>
@@ -227,7 +312,11 @@ export function StellarWalletConnect({ className }: StellarWalletConnectProps) {
         </div>
 
         {/* Disconnect */}
-        <DropdownMenuItem onClick={handleDisconnect} variant="destructive" className="text-xs sm:text-sm">
+        <DropdownMenuItem
+          onClick={handleDisconnect}
+          variant="destructive"
+          className="text-xs sm:text-sm"
+        >
           <LogOut className="size-3.5 sm:size-4" />
           Disconnect
         </DropdownMenuItem>

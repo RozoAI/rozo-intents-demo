@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useStellarWallet } from "@/contexts/StellarWalletContext";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export function TrustlineWarning() {
@@ -53,13 +53,18 @@ export function TrustlineWarning() {
             </div>
             <Button
               onClick={handleCreateTrustline}
-              disabled={trustlineStatus.checking}
+              disabled={trustlineStatus.checking || trustlineStatus.creating}
               size="sm"
               className="bg-red-600 hover:bg-red-700 text-white h-9"
             >
-              {trustlineStatus.checking
-                ? "Creating..."
-                : `Create ${currency} Trustline`}
+              {trustlineStatus.creating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                `Create ${currency} Trustline`
+              )}
             </Button>
           </div>
         </div>

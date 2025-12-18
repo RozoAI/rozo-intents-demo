@@ -4,7 +4,12 @@ import { useStellarWallet } from "@/contexts/StellarWalletContext";
 import { GetFeeError, useGetFee } from "@/hooks/use-get-fee";
 import { formatNumber } from "@/lib/formatNumber";
 import { DEFAULT_INTENT_PAY_CONFIG } from "@/lib/intentPay";
-import { base, FeeType, TokenSymbol } from "@rozoai/intent-common";
+import {
+  base,
+  FeeType,
+  PaymentCompletedEvent,
+  TokenSymbol,
+} from "@rozoai/intent-common";
 import { AlertTriangle, Clock, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -27,6 +32,8 @@ import { StellarAddressInput } from "./StellarAddressInput";
 import { StellarBalanceCard } from "./StellarBalanceCard";
 import { TokenAmountInput } from "./TokenAmountInput";
 import { getStellarHistoryForWallet } from "./utils/history";
+
+import { TokenSelector } from "./TokenSelector";
 
 export function NewBridge() {
   const [feeType, setFeeType] = useState<FeeType>(FeeType.ExactIn);
@@ -261,7 +268,7 @@ export function NewBridge() {
   }, [destinationChainId]);
 
   // Use withdraw logic hook (when isSwitched = true)
-  const { handleWithdraw } = useWithdrawLogic({
+  const { handleWithdraw: baseHandleWithdraw } = useWithdrawLogic({
     currency,
     amount: fromAmount,
     feeAmount: feeData?.fee.toFixed(2) || "0",
@@ -272,23 +279,44 @@ export function NewBridge() {
     isAdmin,
   });
 
+  const handleWithdraw = async () => {
+    const success = await baseHandleWithdraw();
+    if (success) {
+      setFromAmount("");
+      setToAmount("");
+      setDestinationAddress("");
+    }
+  };
+
   // Use deposit logic hook (when isSwitched = false)
-  const { intentConfig, ableToPay, isPreparingConfig, handlePaymentCompleted } =
-    useDepositLogic({
-      appId,
-      amount: fromAmount,
-      memo,
-      feeType,
-      isAdmin,
-      // Only pass destinationStellarAddress when using manual address (not connected)
-      destinationStellarAddress: stellarConnected
-        ? undefined
-        : manualStellarAddress.address,
-      manualTrustlineExists: manualStellarAddress.trustlineExists,
-      currency: isCurrencyEUR
-        ? [TokenSymbol.EURC]
-        : [TokenSymbol.USDC, TokenSymbol.USDT],
-    });
+  const {
+    intentConfig,
+    ableToPay,
+    isPreparingConfig,
+    handlePaymentCompleted: baseHandlePaymentCompleted,
+  } = useDepositLogic({
+    appId,
+    amount: fromAmount,
+    memo,
+    feeType,
+    isAdmin,
+    // Only pass destinationStellarAddress when using manual address (not connected)
+    destinationStellarAddress: stellarConnected
+      ? undefined
+      : manualStellarAddress.address,
+    manualTrustlineExists: manualStellarAddress.trustlineExists,
+    currency: isCurrencyEUR
+      ? [TokenSymbol.EURC]
+      : [TokenSymbol.USDC, TokenSymbol.USDT],
+  });
+
+  // Wrap payment completed to clear amount
+  const handlePaymentCompleted = (paymentData: PaymentCompletedEvent) => {
+    baseHandlePaymentCompleted(paymentData);
+    setFromAmount("");
+    setToAmount("");
+    setMemo("");
+  };
 
   const handleSwitch = () => {
     setIsSwitched(!isSwitched);
@@ -369,21 +397,25 @@ export function NewBridge() {
           <h1 className="text-lg sm:text-2xl font-bold text-neutral-900 dark:text-neutral-50">
             Bridge
           </h1>
-          {stellarConnected && hasHistory ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setHistoryDialogOpen(true)}
-              className="text-xs sm:text-sm h-7 sm:h-9"
-            >
-              <Clock className="size-3 sm:size-4 sm:mr-2" />
-              <span className="hidden sm:inline">Show History</span>
-            </Button>
-          ) : stellarConnected ? (
-            <span className="text-xs sm:text-sm text-muted-foreground">
-              No history found
-            </span>
-          ) : null}
+          <div className="flex items-center justify-between gap-3">
+            {stellarConnected && hasHistory ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setHistoryDialogOpen(true)}
+                className="text-xs sm:text-sm h-9"
+              >
+                <Clock className="size-4 sm:mr-2" />
+                <span className="hidden sm:inline">Show History</span>
+              </Button>
+            ) : stellarConnected ? (
+              <span className="text-xs sm:text-sm text-muted-foreground">
+                No history found
+              </span>
+            ) : null}
+
+            <TokenSelector />
+          </div>
         </div>
 
         {/* Stellar USDC Balance */}
@@ -479,15 +511,15 @@ export function NewBridge() {
               // Show trustline warning if wallet is connected
               <>
                 {!hideTrustlineWarning && hasEnoughXLM ? (
-                  <div className="p-4 rounded-xl border border-red-500/20 bg-red-50 dark:bg-red-500/10">
+                  <div className="p-4 rounded-xl border border-yellow-500/20 bg-yellow-50 dark:bg-yellow-500/10">
                     <div className="flex items-start gap-3">
-                      <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                      <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
                       <div className="space-y-3 flex-1">
                         <div>
-                          <p className="font-medium text-red-900 dark:text-red-100 text-sm">
+                          <p className="font-medium text-yellow-900 dark:text-yellow-100 text-sm">
                             {stellarCurrency} Trustline Required
                           </p>
-                          <p className="text-xs text-red-700 dark:text-red-200/80 mt-1">
+                          <p className="text-xs text-yellow-700 dark:text-yellow-200/80 mt-1">
                             Your Stellar wallet needs to establish a trustline
                             for {stellarCurrency} to receive deposits. This is a
                             one-time setup.
@@ -495,13 +527,20 @@ export function NewBridge() {
                         </div>
                         <Button
                           onClick={handleCreateTrustline}
-                          disabled={trustlineStatus.checking}
+                          disabled={
+                            trustlineStatus.checking || trustlineStatus.creating
+                          }
                           size="sm"
-                          className="bg-red-600 hover:bg-red-700 text-white h-9"
+                          className="bg-yellow-600 hover:bg-yellow-700 text-white h-9"
                         >
-                          {trustlineStatus.checking
-                            ? "Creating..."
-                            : `Create ${stellarCurrency} Trustline`}
+                          {trustlineStatus.creating ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Adding...
+                            </>
+                          ) : (
+                            `Add ${stellarCurrency} Trustline`
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -509,7 +548,7 @@ export function NewBridge() {
                 ) : !hideTrustlineWarning && !hasEnoughXLM ? (
                   <div className="p-4 rounded-xl border border-orange-500/20 bg-orange-50 dark:bg-orange-500/10">
                     <div className="flex items-start gap-3">
-                      <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+                      <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 mt-0.5 shrink-0" />
                       <div className="space-y-1">
                         <p className="font-medium text-orange-900 dark:text-orange-100 text-sm">
                           Insufficient XLM Balance
@@ -594,7 +633,7 @@ export function NewBridge() {
                 )}
                 {isFeeLoading
                   ? "Loading fee..."
-                  : `Bridge USDC to ${destinationChainName}`}
+                  : `Bridge ${stellarCurrency} to ${destinationChainName}`}
               </Button>
             ) : (
               <StellarWalletConnect className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl" />

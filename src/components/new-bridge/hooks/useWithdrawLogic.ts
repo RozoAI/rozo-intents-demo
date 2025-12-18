@@ -131,7 +131,7 @@ export function useWithdrawLogic({
           }
         })();
 
-        completeToastRef.current("Withdrawal complete!", {
+        completeToastRef.current("Withdrawal is in progress! 🎉", {
           action: paymentId
             ? {
                 label: "See Receipt",
@@ -148,7 +148,7 @@ export function useWithdrawLogic({
             : undefined,
           duration: Infinity,
           closeButton: true,
-          description: `Funds incoming to ${destinationChainName}. Please check your wallet soon.`,
+          description: `Your ${currency} is being transferred. It may take a moment to appear in your wallet.`,
           dismissible: true,
         });
       } else if (step === "error") {
@@ -195,12 +195,14 @@ export function useWithdrawLogic({
       if (result) {
         checkTrustline();
         checkXlmBalance();
+        return true;
       } else {
         errorToastRef.current("Failed to withdraw", {
           duration: 5000,
           closeButton: true,
         });
         setStep(null);
+        return false;
       }
     } catch (error) {
       console.error("Failed to withdraw:", error);
@@ -223,6 +225,7 @@ export function useWithdrawLogic({
         closeButton: true,
       });
       setStep(null);
+      return false;
     } finally {
       onLoadingChange(false);
     }
