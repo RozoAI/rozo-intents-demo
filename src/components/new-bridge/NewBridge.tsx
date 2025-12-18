@@ -66,7 +66,10 @@ export function NewBridge() {
     xlmBalance,
     createTrustline,
   } = useStellarWallet();
-  const isCurrencyEUR = stellarCurrency === "EURC";
+  const isCurrencyEUR = useMemo(
+    () => stellarCurrency === "EURC",
+    [stellarCurrency]
+  );
 
   const searchParams = useSearchParams();
   const isAdmin = searchParams.get("admin") === "rozo";

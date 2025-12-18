@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { TokenLogo } from "@rozoai/intent-common";
-import Image from "next/image";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
@@ -26,37 +18,26 @@ function TokenSelectorContent() {
   };
 
   return (
-    <Select value={currentCurrency} onValueChange={handleValueChange}>
-      <SelectTrigger className="w-fit min-w-[90px] sm:min-w-[110px] h-8 sm:h-9 text-xs sm:text-sm px-2 sm:px-3 rounded-lg sm:rounded-xl">
-        <SelectValue placeholder="Select Token" />
-      </SelectTrigger>
-      <SelectContent className="rounded-xl border-neutral-200 dark:border-neutral-800">
-        <SelectItem value="USDC" className="rounded-lg text-xs sm:text-sm">
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <Image
-              src={TokenLogo.USDC}
-              alt="USDC"
-              width={16}
-              height={16}
-              className="rounded-full sm:w-5 sm:h-5"
-            />
-            <span className="font-medium">USDC</span>
-          </div>
-        </SelectItem>
-        <SelectItem value="EURC" className="rounded-lg text-xs sm:text-sm">
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <Image
-              src={TokenLogo.EURC}
-              alt="EURC"
-              width={16}
-              height={16}
-              className="rounded-full sm:w-5 sm:h-5"
-            />
-            <span className="font-medium">EURC</span>
-          </div>
-        </SelectItem>
-      </SelectContent>
-    </Select>
+    <Tabs
+      value={currentCurrency}
+      onValueChange={handleValueChange}
+      className="w-fit"
+    >
+      <TabsList className="h-8 sm:h-9 p-1 rounded-lg sm:rounded-xl bg-neutral-100 dark:bg-neutral-800/50 border border-neutral-200/50 dark:border-neutral-700/50">
+        <TabsTrigger
+          value="USDC"
+          className="rounded-md sm:rounded-lg px-2.5 sm:px-3.5 h-full text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-neutral-700 data-[state=active]:shadow-sm"
+        >
+          $ USD
+        </TabsTrigger>
+        <TabsTrigger
+          value="EURC"
+          className="rounded-md sm:rounded-lg px-2.5 sm:px-3.5 h-full text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-neutral-700 data-[state=active]:shadow-sm"
+        >
+          € EUR
+        </TabsTrigger>
+      </TabsList>
+    </Tabs>
   );
 }
 
@@ -64,7 +45,7 @@ export function TokenSelector() {
   return (
     <Suspense
       fallback={
-        <div className="w-[90px] sm:w-[110px] h-8 sm:h-9 bg-neutral-100 dark:bg-neutral-800 animate-pulse rounded-lg sm:rounded-xl" />
+        <div className="w-[100px] h-8 sm:h-9 bg-neutral-100 dark:bg-neutral-800/50 animate-pulse rounded-lg sm:rounded-xl" />
       }
     >
       <TokenSelectorContent />
