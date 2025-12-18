@@ -5,7 +5,9 @@ import { IntentPayConfig } from "@/lib/intentPay";
 import {
   FeeType,
   PaymentCompletedEvent,
+  rozoStellarEURC,
   rozoStellarUSDC,
+  TokenSymbol,
 } from "@rozoai/intent-common";
 import { useRozoPayUI } from "@rozoai/intent-pay";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,6 +23,7 @@ interface UseDepositLogicProps {
   feeType: FeeType;
   destinationStellarAddress?: string;
   manualTrustlineExists?: boolean;
+  currency: TokenSymbol[];
 }
 
 export function useDepositLogic({
@@ -31,6 +34,7 @@ export function useDepositLogic({
   destinationStellarAddress,
   manualTrustlineExists = false,
   isAdmin = false,
+  currency = [TokenSymbol.USDC, TokenSymbol.USDT],
 }: UseDepositLogicProps) {
   const {
     stellarConnected,
@@ -80,16 +84,23 @@ export function useDepositLogic({
         const config: IntentPayConfig = {
           appId: appId,
           feeType: feeType,
-          toChain: rozoStellarUSDC.chainId,
+          toChain: currency.includes(TokenSymbol.EURC)
+            ? rozoStellarEURC.chainId
+            : rozoStellarUSDC.chainId,
           toAddress: targetAddress,
-          toToken: rozoStellarUSDC.token,
+          toToken: currency.includes(TokenSymbol.EURC)
+            ? rozoStellarEURC.token
+            : rozoStellarUSDC.token,
           toUnits: amount,
+          preferredSymbol: currency,
           metadata: {
             intent: "Deposit",
             items: [
               {
                 name: "ROZO Intents",
-                description: "Transfer USDC to Stellar",
+                description: `Transfer ${
+                  currency.includes(TokenSymbol.EURC) ? "EURC" : "USDC"
+                } to Stellar`,
               },
             ],
           },
@@ -111,8 +122,9 @@ export function useDepositLogic({
 
   const handlePaymentCompleted = (paymentData: PaymentCompletedEvent) => {
     toast.success(`Deposit is in progress! 🎉`, {
-      description:
-        "Your USDC is being transferred. It may take a moment to appear in your wallet.",
+      description: `Your ${
+        currency.includes(TokenSymbol.EURC) ? "EURC" : "USDC"
+      } is being transferred. It may take a moment to appear in your wallet.`,
       duration: 5000,
     });
 
@@ -124,15 +136,16 @@ export function useDepositLogic({
       amount
     ) {
       try {
-        saveStellarHistory(
-          stellarAddress,
-          paymentData.rozoPaymentId,
-          amount,
-          targetAddress,
-          "deposit",
-          "Base", // From Base (or other chains)
-          "Stellar" // To Stellar
-        );
+        saveStellarHistory({
+          walletAddress: stellarAddress,
+          paymentId: paymentData.rozoPaymentId,
+          amount: amount,
+          destinationAddress: targetAddress,
+          type: "deposit",
+          fromChain: "Base", // From Base (or other chains)
+          toChain: "Stellar", // To Stellar
+          currency: currency.includes(TokenSymbol.EURC) ? "EURC" : "USDC",
+        });
 
         // Dispatch custom event to update history
         window.dispatchEvent(new CustomEvent("stellar-payment-completed"));

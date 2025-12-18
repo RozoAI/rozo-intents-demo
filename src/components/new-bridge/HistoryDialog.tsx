@@ -178,7 +178,7 @@ export function HistoryDialog({
                         )}
                         <div className="flex flex-col">
                           <span className="text-sm font-semibold text-neutral-900 dark:text-white">
-                            {item.amount} USDC
+                            {item.amount} {item.currency || "USDC"}
                           </span>
                           <span className="text-xs text-muted-foreground">
                             {item.type === "deposit" ? "Deposit" : "Withdraw"}

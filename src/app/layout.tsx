@@ -6,6 +6,7 @@ import { StellarWalletProvider } from "@/contexts/StellarWalletContext";
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,20 +36,22 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background`}
       >
         <CryptoPolyfillSetup />
-        <StellarWalletProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <Providers>
-              {children}
-              <CryptoLogoPreloader />
-              <IntercomInitializer appId="kpfdpai7" />
-            </Providers>
-          </ThemeProvider>
-        </StellarWalletProvider>
+        <Suspense fallback={null}>
+          <StellarWalletProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="light"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <Providers>
+                {children}
+                <CryptoLogoPreloader />
+                <IntercomInitializer appId="kpfdpai7" />
+              </Providers>
+            </ThemeProvider>
+          </StellarWalletProvider>
+        </Suspense>
       </body>
     </html>
   );

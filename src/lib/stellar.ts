@@ -5,15 +5,7 @@ import {
   WalletNetwork,
   XBULL_ID,
 } from "@creit.tech/stellar-wallets-kit";
-import {
-  Account,
-  Asset,
-  Horizon,
-  Memo,
-  Networks,
-  Operation,
-  TransactionBuilder,
-} from "@stellar/stellar-sdk";
+import { Asset, Horizon, Networks } from "@stellar/stellar-sdk";
 
 // Stellar network configuration
 export const STELLAR_NETWORKS = {
@@ -151,70 +143,6 @@ export interface StellarTransactionParams {
   network?: StellarNetwork;
 }
 
-export const createStellarPayment = async (
-  params: StellarTransactionParams,
-  horizonUrl: string = "https://horizon.stellar.org"
-): Promise<string> => {
-  const {
-    sourceAccount,
-    destinationAddress,
-    amount,
-    asset = Asset.native(), // Default to XLM
-    memo,
-    network = "PUBLIC",
-  } = params;
-
-  try {
-    // Load source account
-    const response = await fetch(`${horizonUrl}/accounts/${sourceAccount}`);
-    const accountData = await response.json();
-    const account = new Account(sourceAccount, accountData.sequence);
-
-    // Build transaction
-    const transactionBuilder = new TransactionBuilder(account, {
-      fee: "100", // Base fee in stroops
-      networkPassphrase: STELLAR_NETWORKS[network],
-    });
-
-    // Add payment operation
-    transactionBuilder.addOperation(
-      Operation.payment({
-        destination: destinationAddress,
-        asset,
-        amount,
-      })
-    );
-
-    // Add memo if provided
-    if (memo) {
-      let memoObj: Memo;
-      switch (memo.type) {
-        case LocalMemoType.MemoText:
-          memoObj = Memo.text(memo.value);
-          break;
-        case LocalMemoType.MemoId:
-          memoObj = Memo.id(memo.value);
-          break;
-        case LocalMemoType.MemoHash:
-          memoObj = Memo.hash(memo.value);
-          break;
-        default:
-          memoObj = Memo.text(memo.value);
-      }
-      transactionBuilder.addMemo(memoObj);
-    }
-
-    // Set timeout and build
-    transactionBuilder.setTimeout(30);
-    const transaction = transactionBuilder.build();
-
-    return transaction.toXDR();
-  } catch (error) {
-    console.error("Failed to create Stellar payment:", error);
-    throw error;
-  }
-};
-
 // Stellar wallet connection state
 export interface StellarWalletState {
   isConnected: boolean;
@@ -236,20 +164,24 @@ export const USDC_ASSET = {
   issuer: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
 };
 
-// Check USDC Trustline
-export const checkUSDCTrustline = async (
-  accountAddress: string,
+export const EURC_ASSET = {
+  code: "EURC",
+  issuer: "GDHU6WRG4IEQXM5NZ4BMPKOXHW76MZM4Y2IEMFDVXBSDP6SJY4ITNPP2",
+};
+
+// Check Token Trustline (generic function)
+export const checkTokenTrustline = async (
+  address: string,
+  currency: "USDC" | "EURC",
   horizonUrl: string = "https://horizon.stellar.org"
 ): Promise<{ exists: boolean; balance: string }> => {
   const server = new Horizon.Server(horizonUrl);
-  const assetCode = USDC_ASSET.code;
-  const assetIssuer = USDC_ASSET.issuer;
+  const asset = currency === "EURC" ? EURC_ASSET : USDC_ASSET;
+  const assetCode = asset.code;
+  const assetIssuer = asset.issuer;
 
   try {
-    const accountData = await server
-      .accounts()
-      .accountId(accountAddress)
-      .call();
+    const accountData = await server.accounts().accountId(address).call();
 
     const trustline = accountData.balances.find(
       (balance) =>

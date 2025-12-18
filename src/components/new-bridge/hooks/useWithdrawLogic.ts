@@ -9,6 +9,7 @@ import { useEffect, useRef } from "react";
 import { saveStellarHistory } from "../utils/history";
 
 interface UseWithdrawLogicProps {
+  currency: "USDC" | "EURC";
   amount: string | undefined;
   feeAmount: string | undefined;
   destinationAddress: string;
@@ -19,6 +20,7 @@ interface UseWithdrawLogicProps {
 }
 
 export function useWithdrawLogic({
+  currency = "USDC",
   amount,
   feeAmount,
   destinationAddress,
@@ -92,15 +94,16 @@ export function useWithdrawLogic({
               }
             })();
 
-            saveStellarHistory(
-              stellarAddress,
-              paymentId,
-              amount,
-              destinationAddress,
-              "withdraw",
-              "Stellar",
-              destinationChainName
-            );
+            saveStellarHistory({
+              walletAddress: stellarAddress,
+              paymentId: paymentId,
+              amount: amount,
+              destinationAddress: destinationAddress,
+              type: "withdraw",
+              fromChain: "Stellar",
+              toChain: destinationChainName,
+              currency: currency,
+            });
 
             // Dispatch custom event to update history
             window.dispatchEvent(new CustomEvent("stellar-payment-completed"));
@@ -128,7 +131,7 @@ export function useWithdrawLogic({
           }
         })();
 
-        completeToastRef.current("Withdrawal complete!", {
+        completeToastRef.current("Withdrawal is in progress! 🎉", {
           action: paymentId
             ? {
                 label: "See Receipt",
@@ -145,7 +148,7 @@ export function useWithdrawLogic({
             : undefined,
           duration: Infinity,
           closeButton: true,
-          description: `Funds incoming to ${destinationChainName}. Please check your wallet soon.`,
+          description: `Your ${currency} is being transferred. It may take a moment to appear in your wallet.`,
           dismissible: true,
         });
       } else if (step === "error") {
@@ -184,6 +187,7 @@ export function useWithdrawLogic({
       const result = await transfer({
         amount,
         feeAmount,
+        currency,
         address: destinationAddress,
         chainId: destinationChainId,
       });
@@ -191,12 +195,14 @@ export function useWithdrawLogic({
       if (result) {
         checkTrustline();
         checkXlmBalance();
+        return true;
       } else {
         errorToastRef.current("Failed to withdraw", {
           duration: 5000,
           closeButton: true,
         });
         setStep(null);
+        return false;
       }
     } catch (error) {
       console.error("Failed to withdraw:", error);
@@ -219,6 +225,7 @@ export function useWithdrawLogic({
         closeButton: true,
       });
       setStep(null);
+      return false;
     } finally {
       onLoadingChange(false);
     }
