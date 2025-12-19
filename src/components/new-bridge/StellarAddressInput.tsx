@@ -29,7 +29,13 @@ export function StellarAddressInput({
 
   const checkTrustline = useCallback(
     async (address: string) => {
-      if (!isValidStellarAddress(address)) {
+      try {
+        if (!isValidStellarAddress(address)) {
+          return;
+        }
+      } catch (err) {
+        // Invalid or unsupported address type - don't proceed with trustline check
+        onErrorChange?.("Invalid or unsupported Stellar address format");
         return;
       }
 
@@ -70,7 +76,23 @@ export function StellarAddressInput({
 
   // Re-check trustline when currency changes (if address is already entered)
   useEffect(() => {
-    if (!value || !isValidStellarAddress(value)) {
+    if (!value) {
+      return;
+    }
+
+    // Validate address first, catch any errors from unsupported address types
+    let isValid = false;
+    try {
+      isValid = isValidStellarAddress(value);
+    } catch (err) {
+      // Invalid or unsupported address type
+      onErrorChange?.("Invalid or unsupported Stellar address format");
+      setTrustlineExists(false);
+      onTrustlineStatusChange?.(false, "0");
+      return;
+    }
+
+    if (!isValid) {
       return;
     }
 
@@ -142,7 +164,18 @@ export function StellarAddressInput({
         return;
       }
 
-      if (!isValidStellarAddress(value)) {
+      let isValid = false;
+      try {
+        isValid = isValidStellarAddress(value);
+      } catch (err) {
+        // Invalid or unsupported address type
+        onErrorChange?.("Invalid or unsupported Stellar address format");
+        setTrustlineExists(false);
+        onTrustlineStatusChange?.(false, "0");
+        return;
+      }
+
+      if (!isValid) {
         onErrorChange?.("Invalid Stellar address");
         setTrustlineExists(false);
         onTrustlineStatusChange?.(false, "0");
@@ -151,7 +184,8 @@ export function StellarAddressInput({
 
       // Valid address, check trustline (or skip for contract addresses)
       checkTrustline(value);
-    } catch {
+    } catch (err) {
+      // Catch any other unexpected errors
       onErrorChange?.("Invalid Stellar address");
       setTrustlineExists(false);
       onTrustlineStatusChange?.(false, "0");

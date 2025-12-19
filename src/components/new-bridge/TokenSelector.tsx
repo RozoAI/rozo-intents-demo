@@ -1,6 +1,12 @@
 "use client";
 
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
@@ -18,26 +24,18 @@ function TokenSelectorContent() {
   };
 
   return (
-    <Tabs
-      value={currentCurrency}
-      onValueChange={handleValueChange}
-      className="w-fit"
-    >
-      <TabsList className="h-8 sm:h-9 p-1 rounded-lg sm:rounded-xl bg-neutral-100 dark:bg-neutral-800/50 border border-neutral-200/50 dark:border-neutral-700/50">
-        <TabsTrigger
-          value="USDC"
-          className="rounded-md sm:rounded-lg px-2.5 sm:px-3.5 h-full text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-neutral-700 data-[state=active]:shadow-sm"
-        >
-          $ USD
-        </TabsTrigger>
-        <TabsTrigger
-          value="EURC"
-          className="rounded-md sm:rounded-lg px-2.5 sm:px-3.5 h-full text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-neutral-700 data-[state=active]:shadow-sm"
-        >
-          € EUR
-        </TabsTrigger>
-      </TabsList>
-    </Tabs>
+    <Select value={currentCurrency} onValueChange={handleValueChange}>
+      <SelectTrigger
+        size="sm"
+        className="w-fit h-8 sm:h-9 text-xs sm:text-sm border-neutral-200/50 dark:border-neutral-700/50 bg-neutral-100 dark:bg-neutral-800/50"
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="USDC">$ USD</SelectItem>
+        <SelectItem value="EURC">€ EUR</SelectItem>
+      </SelectContent>
+    </Select>
   );
 }
 
