@@ -26,9 +26,13 @@ import { Stellar } from "./icons/chains";
 
 interface StellarWalletConnectProps {
   className?: string;
+  disabled?: boolean;
 }
 
-export function StellarWalletConnect({ className }: StellarWalletConnectProps) {
+export function StellarWalletConnect({
+  className,
+  disabled,
+}: StellarWalletConnectProps) {
   const {
     stellarAddress,
     stellarConnected,
@@ -103,7 +107,7 @@ export function StellarWalletConnect({ className }: StellarWalletConnectProps) {
       <Button
         className={cn("flex items-center gap-1.5 sm:gap-2", className)}
         onClick={handleConnect}
-        disabled={stellarConnecting}
+        disabled={stellarConnecting || disabled}
       >
         <Wallet className="size-3.5 sm:size-4" />
         <span className="text-xs sm:text-base">
@@ -116,7 +120,10 @@ export function StellarWalletConnect({ className }: StellarWalletConnectProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button className={cn("flex items-center gap-1.5 sm:gap-2", className)}>
+        <Button
+          className={cn("flex items-center gap-1.5 sm:gap-2", className)}
+          disabled={disabled}
+        >
           <div className="flex items-center gap-1.5 sm:gap-2">
             <Wallet className="size-3.5 sm:size-4" />
             <span className="font-mono text-xs sm:text-base">

@@ -73,18 +73,25 @@ export const useGetFee = (
     debounceMs?: number;
   }
 ) => {
-  const [debouncedParams, setDebouncedParams] = useState(params);
+  const [debouncedAmount, setDebouncedAmount] = useState(params.amount);
   const debounceMs = options?.debounceMs ?? 500;
 
+  // Debounce only amount changes
   useEffect(() => {
     const handler = setTimeout(() => {
-      setDebouncedParams(params);
+      setDebouncedAmount(params.amount);
     }, debounceMs);
 
     return () => {
       clearTimeout(handler);
     };
-  }, [params.amount, params.appId, params.currency, params.type, debounceMs]);
+  }, [params.amount, debounceMs]);
+
+  // Create debounced params with immediate updates for currency, appId, and type
+  const debouncedParams = {
+    ...params,
+    amount: debouncedAmount,
+  };
 
   return useQuery({
     queryKey: [

@@ -7,16 +7,18 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { HelpCircle } from "lucide-react";
 
 interface MemoInputProps {
   value: string;
   onChange: (value: string) => void;
+  className?: string;
 }
 
-export function MemoInput({ value, onChange }: MemoInputProps) {
+export function MemoInput({ value, onChange, className }: MemoInputProps) {
   return (
-    <div className="space-y-2">
+    <div className={cn("space-y-2", className)}>
       <div className="flex items-center gap-1.5">
         <Label
           htmlFor="memo"
@@ -41,11 +43,11 @@ export function MemoInput({ value, onChange }: MemoInputProps) {
       </div>
       <Input
         id="memo"
-        placeholder="Enter memo (optional)"
+        placeholder="Enter memo"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="h-10 sm:h-12 bg-white border-neutral-300 text-base text-neutral-900 placeholder:text-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-500"
-        style={{ fontSize: '16px' }} // Prevent iOS zoom
+        style={{ fontSize: "16px" }} // Prevent iOS zoom
       />
     </div>
   );

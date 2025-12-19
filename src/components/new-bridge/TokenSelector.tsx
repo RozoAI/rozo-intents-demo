@@ -25,10 +25,7 @@ function TokenSelectorContent() {
 
   return (
     <Select value={currentCurrency} onValueChange={handleValueChange}>
-      <SelectTrigger
-        size="sm"
-        className="w-fit h-8 sm:h-9 text-xs sm:text-sm border-neutral-200/50 dark:border-neutral-700/50 bg-neutral-100 dark:bg-neutral-800/50"
-      >
+      <SelectTrigger size="sm" className="w-fit h-8 sm:h-9 text-xs sm:text-sm">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

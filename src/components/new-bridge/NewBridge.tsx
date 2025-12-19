@@ -108,7 +108,7 @@ export function NewBridge() {
     },
     {
       enabled: !!debouncedAmount && parseFloat(debouncedAmount) > 0,
-      debounceMs: 0, // No additional debounce needed since we're using debouncedAmount
+      debounceMs: 0,
     }
   );
 
@@ -396,7 +396,10 @@ export function NewBridge() {
 
   return (
     <div className="w-full max-w-xl mx-auto">
-      <div className="rounded-2xl sm:rounded-3xl p-3 sm:p-6 md:p-8 bg-neutral-50 border border-neutral-200 dark:bg-neutral-900 dark:border-neutral-800 shadow-lg">
+      <div
+        className="rounded-2xl sm:rounded-3xl p-3 sm:p-6 md:p-8 bg-neutral-50 border border-neutral-200 dark:bg-neutral-900 dark:border-neutral-800 shadow-lg transition-[grid-template-rows] duration-300 ease-in-out grid"
+        style={{ gridTemplateRows: "1fr" }}
+      >
         <div className="flex items-center justify-between mb-3 sm:mb-6">
           <h1 className="text-lg sm:text-2xl font-bold text-neutral-900 dark:text-neutral-50">
             Bridge
@@ -495,9 +498,30 @@ export function NewBridge() {
           )}
         </BridgeCard>
 
+        {((fromAmount && parseFloat(fromAmount) > 0) ||
+          (toAmount && parseFloat(toAmount) > 0)) &&
+          !limitError && (
+            <div className="flex items-center justify-between mt-3">
+              <div className="text-xs sm:text-sm">
+                <p className="text-neutral-500 dark:text-neutral-400">Fees:</p>
+                <b className="text-neutral-900 dark:text-neutral-50">
+                  {isFeeLoading ? "Calculating..." : fees}
+                </b>
+              </div>
+              <div className="text-xs sm:text-sm text-right">
+                <p className="text-neutral-500 dark:text-neutral-400">
+                  Estimated time:
+                </p>
+                <b className="text-neutral-900 dark:text-neutral-50">
+                  {"<"}1 minute
+                </b>
+              </div>
+            </div>
+          )}
+
         {/* Chain Selector & Address Input - Only show when withdrawing (Stellar to multi-chain) */}
         {isSwitched && (
-          <div className="my-3 sm:my-6 space-y-3 sm:space-y-4">
+          <div className="mt-3 border-t border-neutral-200 dark:border-neutral-700 pt-3">
             <DestinationAddressInput
               value={destinationAddress}
               onChange={setDestinationAddress}
@@ -510,7 +534,7 @@ export function NewBridge() {
 
         {/* Deposit Configuration - Only show when depositing (multi-chain to Stellar) */}
         {!isSwitched && (
-          <div className="mt-3 sm:mt-6 space-y-3 sm:space-y-4">
+          <div className="mt-3 border-t border-neutral-200 dark:border-neutral-700 pt-3">
             {stellarConnected ? (
               // Show trustline warning if wallet is connected
               <>
@@ -584,18 +608,12 @@ export function NewBridge() {
                 {manualStellarAddress.address &&
                   manualStellarAddress.trustlineExists &&
                   !manualStellarAddress.addressError && (
-                    <MemoInput value={memo} onChange={setMemo} />
+                    <MemoInput
+                      value={memo}
+                      onChange={setMemo}
+                      className="mt-4"
+                    />
                   )}
-
-                {!manualStellarAddress.trustlineExists && (
-                  <div className="flex items-center gap-3 my-2">
-                    <div className="grow border-t border-neutral-200 dark:border-neutral-700" />
-                    <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                      Or
-                    </span>
-                    <div className="grow border-t border-neutral-200 dark:border-neutral-700" />
-                  </div>
-                )}
               </>
             )}
           </div>
@@ -611,28 +629,20 @@ export function NewBridge() {
           </div>
         )}
 
-        {((fromAmount && parseFloat(fromAmount) > 0) ||
-          (toAmount && parseFloat(toAmount) > 0)) &&
-          validFeeData &&
+        {!stellarConnected &&
+          !manualStellarAddress.trustlineExists &&
           !limitError && (
-            <div className="flex items-center justify-between mt-3 sm:mt-6">
-              <div className="text-xs sm:text-sm">
-                <p className="text-neutral-500 dark:text-neutral-400">Fees:</p>
-                <b className="text-neutral-900 dark:text-neutral-50">{fees}</b>
-              </div>
-              <div className="text-xs sm:text-sm text-right">
-                <p className="text-neutral-500 dark:text-neutral-400">
-                  Estimated time:
-                </p>
-                <b className="text-neutral-900 dark:text-neutral-50">
-                  {"<"}1 minute
-                </b>
-              </div>
+            <div className="flex items-center gap-3 mt-3">
+              <div className="grow border-t border-neutral-200 dark:border-neutral-700" />
+              <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                Or
+              </span>
+              <div className="grow border-t border-neutral-200 dark:border-neutral-700" />
             </div>
           )}
 
         {/* Connect Wallet / Bridge Button */}
-        <div className="mt-3 sm:mt-6">
+        <div className="mt-3">
           {isSwitched ? (
             // Withdraw Button - Requires wallet connection
             stellarConnected ? (
@@ -650,7 +660,10 @@ export function NewBridge() {
                   : `Bridge ${stellarCurrency} to ${destinationChainName}`}
               </Button>
             ) : (
-              <StellarWalletConnect className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl" />
+              <StellarWalletConnect
+                disabled={!!limitError}
+                className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl"
+              />
             )
           ) : (
             // Deposit Button - Can work with or without wallet connection
@@ -688,7 +701,10 @@ export function NewBridge() {
                 />
               ) : (
                 // User not connected and conditions not met - show connect wallet
-                <StellarWalletConnect className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl" />
+                <StellarWalletConnect
+                  disabled={!!limitError}
+                  className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl"
+                />
               )}
             </>
           )}
