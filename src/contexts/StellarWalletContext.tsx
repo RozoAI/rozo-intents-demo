@@ -1,6 +1,6 @@
 "use client";
 
-import { checkTokenTrustline, EURC_ASSET, USDC_ASSET } from "@/lib/stellar";
+import { EURC_ASSET, USDC_ASSET } from "@/lib/stellar";
 import { setupCryptoPolyfill } from "@/utils/polyfills";
 import {
   AlbedoModule,
@@ -178,7 +178,115 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Check XLM balance
+  // Unified function to check both trustlines and XLM balance with a single account request
+  const checkAllBalances = async () => {
+    if (!stellarConnected || !stellarAddress) {
+      setTrustlineStatus({
+        exists: false,
+        balance: "0",
+        checking: false,
+        creating: false,
+      });
+      setUsdcTrustline({
+        exists: false,
+        balance: "0",
+        checking: false,
+        creating: false,
+      });
+      setEurcTrustline({
+        exists: false,
+        balance: "0",
+        checking: false,
+        creating: false,
+      });
+      setXlmBalance({ balance: "0", checking: false });
+      return;
+    }
+
+    setTrustlineStatus((prev) => ({ ...prev, checking: true }));
+    setUsdcTrustline((prev) => ({ ...prev, checking: true }));
+    setEurcTrustline((prev) => ({ ...prev, checking: true }));
+    setXlmBalance((prev) => ({ ...prev, checking: true }));
+
+    try {
+      // Fetch account data once and reuse for all balance checks
+      const accountData = await server
+        .accounts()
+        .accountId(stellarAddress)
+        .call();
+
+      // Extract XLM balance
+      const xlmBalance = accountData.balances.find(
+        (balance) => balance.asset_type === "native"
+      );
+
+      setXlmBalance({
+        balance: xlmBalance?.balance || "0",
+        checking: false,
+      });
+
+      // Extract trustlines from the account data
+      const usdcAsset = USDC_ASSET;
+      const eurcAsset = EURC_ASSET;
+
+      const usdcTrustline = accountData.balances.find(
+        (balance) =>
+          balance.asset_type === "credit_alphanum4" &&
+          balance.asset_code === usdcAsset.code &&
+          balance.asset_issuer === usdcAsset.issuer
+      );
+
+      const eurcTrustline = accountData.balances.find(
+        (balance) =>
+          balance.asset_type === "credit_alphanum4" &&
+          balance.asset_code === eurcAsset.code &&
+          balance.asset_issuer === eurcAsset.issuer
+      );
+
+      const usdcResult = {
+        exists: !!usdcTrustline,
+        balance: usdcTrustline?.balance || "0",
+      };
+
+      const eurcResult = {
+        exists: !!eurcTrustline,
+        balance: eurcTrustline?.balance || "0",
+      };
+
+      setUsdcTrustline((prev) => ({
+        ...prev,
+        exists: usdcResult.exists,
+        balance: usdcResult.balance,
+        checking: false,
+      }));
+
+      setEurcTrustline((prev) => ({
+        ...prev,
+        exists: eurcResult.exists,
+        balance: eurcResult.balance,
+        checking: false,
+      }));
+
+      // Update main trustlineStatus based on current currency
+      const target = currency === "EURC" ? eurcResult : usdcResult;
+      setTrustlineStatus((prev) => ({
+        ...prev,
+        exists: target.exists,
+        balance: target.balance,
+        checking: false,
+      }));
+    } catch (error) {
+      console.error("Failed to check balances:", error);
+      const errorState = { checking: false, exists: false, balance: "0" };
+      setTrustlineStatus((prev) => ({ ...prev, ...errorState }));
+      setUsdcTrustline((prev) => ({ ...prev, ...errorState }));
+      setEurcTrustline((prev) => ({ ...prev, ...errorState }));
+      setXlmBalance({ balance: "0", checking: false });
+      toast.error(`Failed to check balances`);
+    }
+  };
+
+  // Check XLM balance (kept for backward compatibility with other components)
   const checkXlmBalance = async () => {
     if (!stellarConnected || !stellarAddress) {
       setXlmBalance({ balance: "0", checking: false });
@@ -188,7 +296,6 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
     setXlmBalance((prev) => ({ ...prev, checking: true }));
 
     try {
-      const server = new Horizon.Server("https://horizon.stellar.org");
       const accountData = await server
         .accounts()
         .accountId(stellarAddress)
@@ -208,7 +315,7 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Check token trustline (USDC and EURC)
+  // Check token trustline (USDC and EURC) - optimized to use single account request
   const checkTrustline = async () => {
     if (!stellarConnected || !stellarAddress) {
       setTrustlineStatus({
@@ -237,39 +344,62 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
     setEurcTrustline((prev) => ({ ...prev, checking: true }));
 
     try {
-      const [usdcResult, eurcResult] = await Promise.allSettled([
-        checkTokenTrustline(stellarAddress, "USDC"),
-        checkTokenTrustline(stellarAddress, "EURC"),
-      ]);
+      // Fetch account data once and reuse for both trustlines
+      const accountData = await server
+        .accounts()
+        .accountId(stellarAddress)
+        .call();
+
+      // Extract trustlines from the account data
+      const usdcAsset = USDC_ASSET;
+      const eurcAsset = EURC_ASSET;
+
+      const usdcTrustline = accountData.balances.find(
+        (balance) =>
+          balance.asset_type === "credit_alphanum4" &&
+          balance.asset_code === usdcAsset.code &&
+          balance.asset_issuer === usdcAsset.issuer
+      );
+
+      const eurcTrustline = accountData.balances.find(
+        (balance) =>
+          balance.asset_type === "credit_alphanum4" &&
+          balance.asset_code === eurcAsset.code &&
+          balance.asset_issuer === eurcAsset.issuer
+      );
+
+      const usdcResult = {
+        exists: !!usdcTrustline,
+        balance: usdcTrustline?.balance || "0",
+      };
+
+      const eurcResult = {
+        exists: !!eurcTrustline,
+        balance: eurcTrustline?.balance || "0",
+      };
 
       setUsdcTrustline((prev) => ({
         ...prev,
-        exists:
-          usdcResult.status === "fulfilled" ? usdcResult.value.exists : false,
-        balance:
-          usdcResult.status === "fulfilled" ? usdcResult.value.balance : "0",
+        exists: usdcResult.exists,
+        balance: usdcResult.balance,
         checking: false,
       }));
 
       setEurcTrustline((prev) => ({
         ...prev,
-        exists:
-          eurcResult.status === "fulfilled" ? eurcResult.value.exists : false,
-        balance:
-          eurcResult.status === "fulfilled" ? eurcResult.value.balance : "0",
+        exists: eurcResult.exists,
+        balance: eurcResult.balance,
         checking: false,
       }));
 
       // Update main trustlineStatus based on current currency
-      setTrustlineStatus((prev) => {
-        const target = currency === "EURC" ? eurcResult : usdcResult;
-        return {
-          ...prev,
-          exists: target.status === "fulfilled" ? target.value.exists : false,
-          balance: target.status === "fulfilled" ? target.value.balance : "0",
-          checking: false,
-        };
-      });
+      const target = currency === "EURC" ? eurcResult : usdcResult;
+      setTrustlineStatus((prev) => ({
+        ...prev,
+        exists: target.exists,
+        balance: target.balance,
+        checking: false,
+      }));
     } catch (error) {
       console.error("Failed to check trustlines:", error);
       const errorState = { checking: false, exists: false, balance: "0" };
@@ -437,10 +567,10 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
   }, [isInitialized, stellarKit]);
 
   // Check balances when wallet connects or currency changes
+  // Use unified function to make a single account request instead of multiple
   useEffect(() => {
     if (stellarConnected && stellarAddress) {
-      checkTrustline();
-      checkXlmBalance();
+      checkAllBalances();
     } else {
       // Reset balances when disconnected
       setTrustlineStatus({

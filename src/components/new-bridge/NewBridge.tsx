@@ -66,6 +66,7 @@ export function NewBridge() {
     xlmBalance,
     createTrustline,
   } = useStellarWallet();
+
   const isCurrencyEUR = useMemo(
     () => stellarCurrency === "EURC",
     [stellarCurrency]
@@ -585,6 +586,16 @@ export function NewBridge() {
                   !manualStellarAddress.addressError && (
                     <MemoInput value={memo} onChange={setMemo} />
                   )}
+
+                {!manualStellarAddress.trustlineExists && (
+                  <div className="flex items-center gap-3 my-2">
+                    <div className="grow border-t border-neutral-200 dark:border-neutral-700" />
+                    <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                      Or
+                    </span>
+                    <div className="grow border-t border-neutral-200 dark:border-neutral-700" />
+                  </div>
+                )}
               </>
             )}
           </div>

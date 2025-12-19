@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { checkTokenTrustline, isContractAddress } from "@/lib/stellar";
 import { isValidStellarAddress } from "@rozoai/intent-common";
 import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Textarea } from "../ui/textarea";
 
 interface StellarAddressInputProps {
@@ -65,8 +65,62 @@ export function StellarAddressInput({
         setIsCheckingTrustline(false);
       }
     },
-    [onTrustlineStatusChange, onErrorChange]
+    [currency, onTrustlineStatusChange, onErrorChange]
   );
+
+  // Re-check trustline when currency changes (if address is already entered)
+  useEffect(() => {
+    if (!value || !isValidStellarAddress(value)) {
+      return;
+    }
+
+    // Skip trustline checking for contract addresses (C addresses)
+    if (isContractAddress(value)) {
+      setTrustlineExists(true);
+      onTrustlineStatusChange?.(true, "0");
+      onErrorChange?.("");
+      return;
+    }
+
+    let cancelled = false;
+    setIsCheckingTrustline(true);
+
+    const performCheck = async () => {
+      try {
+        const result = await checkTokenTrustline(value, currency);
+        if (cancelled) return;
+
+        setTrustlineExists(result.exists);
+        onTrustlineStatusChange?.(result.exists, result.balance);
+
+        if (!result.exists) {
+          onErrorChange?.(
+            `This Stellar address doesn't have a ${currency} trustline. The recipient needs to create one first.`
+          );
+        } else {
+          onErrorChange?.("");
+        }
+      } catch (err) {
+        if (cancelled) return;
+        console.error("Failed to check trustline:", err);
+        setTrustlineExists(false);
+        onTrustlineStatusChange?.(false, "0");
+        onErrorChange?.(
+          "Failed to check trustline. Please verify the address is correct."
+        );
+      } finally {
+        if (!cancelled) {
+          setIsCheckingTrustline(false);
+        }
+      }
+    };
+
+    performCheck();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currency, value, onTrustlineStatusChange, onErrorChange]);
 
   const handleChange = (inputValue: string) => {
     onChange(inputValue);
