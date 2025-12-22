@@ -33,6 +33,7 @@ import { StellarBalanceCard } from "./StellarBalanceCard";
 import { TokenAmountInput } from "./TokenAmountInput";
 import { getStellarHistoryForWallet } from "./utils/history";
 
+import { cn } from "@/lib/utils";
 import { TokenSelector } from "./TokenSelector";
 
 export function NewBridge() {
@@ -521,7 +522,13 @@ export function NewBridge() {
 
         {/* Chain Selector & Address Input - Only show when withdrawing (Stellar to multi-chain) */}
         {isSwitched && (
-          <div className="mt-3 border-t border-neutral-200 dark:border-neutral-700 pt-3">
+          <div
+            className={cn(
+              "mt-3",
+              feeData &&
+                " border-t border-neutral-200 dark:border-neutral-700 pt-3"
+            )}
+          >
             <DestinationAddressInput
               value={destinationAddress}
               onChange={setDestinationAddress}
@@ -629,7 +636,8 @@ export function NewBridge() {
           </div>
         )}
 
-        {!stellarConnected &&
+        {!isSwitched &&
+          !stellarConnected &&
           !manualStellarAddress.trustlineExists &&
           !limitError && (
             <div className="flex items-center gap-3 mt-3">
