@@ -304,7 +304,7 @@ export const BinanceSmartChain = ({
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 2496 2496"
-    className={cn("bg-white", props.className)}
+    className={cn(props.className)}
   >
     <g>
       <path

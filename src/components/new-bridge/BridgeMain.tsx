@@ -4,29 +4,18 @@ import { useStellarWallet } from "@/contexts/StellarWalletContext";
 import { GetFeeError, useGetFee } from "@/hooks/use-get-fee";
 import { formatNumber } from "@/lib/formatNumber";
 import { DEFAULT_INTENT_PAY_CONFIG } from "@/lib/intentPay";
-import {
-  base,
-  FeeType,
-  PaymentCompletedEvent,
-  TokenSymbol,
-} from "@rozoai/intent-common";
+import { base, FeeType, TokenSymbol } from "@rozoai/intent-common";
 import { AlertTriangle, Clock, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { StellarWalletConnect } from "../StellarWalletConnect";
 import { Button } from "../ui/button";
 import { AmountLimitWarning } from "./AmountLimitWarning";
 import { BridgeCard } from "./BridgeCard";
 import { BridgeSwapButton } from "./BridgeSwapButton";
-import { ChainBadge } from "./ChainBadge";
-import { ChainSelector, supportedPayoutChains } from "./ChainSelector";
-import { DepositButton } from "./DepositButton";
 import { DestinationAddressInput } from "./DestinationAddressInput";
 import { HistoryDialog } from "./HistoryDialog";
-import { useDepositLogic } from "./hooks/useDepositLogic";
 import { useManualStellarAddress } from "./hooks/useManualStellarAddress";
-import { useWithdrawLogic } from "./hooks/useWithdrawLogic";
 import { MemoInput } from "./MemoInput";
 import { StellarAddressInput } from "./StellarAddressInput";
 import { StellarBalanceCard } from "./StellarBalanceCard";
@@ -34,11 +23,23 @@ import { TokenAmountInput } from "./TokenAmountInput";
 import { getStellarHistoryForWallet } from "./utils/history";
 
 import { cn } from "@/lib/utils";
-import { TokenSelector } from "./TokenSelector";
+import { BridgePayButton } from "./BridgePayButton";
 import { useBridge } from "./providers/BridgeProvider";
+import { useDestinationSelector, useSourceSelector } from "./providers/hooks";
+import { TokenSelectorTrigger } from "./token-selector/TokenSelectorTrigger";
 
-export function NewBridge() {
-  const { swapSourceAndDestination } = useBridge();
+export function BridgeMain() {
+  const {
+    swapSourceAndDestination,
+    isDestinationAddressValid,
+    setDestinationAddress,
+    destinationAddress,
+  } = useBridge();
+  const sourceSelector = useSourceSelector();
+  const destinationSelector = useDestinationSelector();
+  // Manual Stellar address for deposits (when wallet not connected)
+  const manualStellarAddress = useManualStellarAddress();
+
   const [feeType, setFeeType] = useState<FeeType>(FeeType.ExactIn);
   const [fromAmount, setFromAmount] = useState<string | undefined>("");
   const [toAmount, setToAmount] = useState<string | undefined>("");
@@ -46,14 +47,10 @@ export function NewBridge() {
     ""
   );
   const [isSwitched, setIsSwitched] = useState(false);
-  const [isWithdrawLoading, setIsWithdrawLoading] = useState(false);
   const [balanceError, setBalanceError] = useState<string>("");
-  const [destinationAddress, setDestinationAddress] = useState<string>("");
   const [addressError, setAddressError] = useState<string>("");
   const [memo, setMemo] = useState<string>("");
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
-  // Manual Stellar address for deposits (when wallet not connected)
-  const manualStellarAddress = useManualStellarAddress();
   // State to track history updates
   const [historyUpdateTrigger, setHistoryUpdateTrigger] = useState(0);
   // Destination chain for withdrawal (default to Base)
@@ -139,7 +136,7 @@ export function NewBridge() {
       return "Free";
     }
 
-    return `${formatNumber(feeData.fee.toString())} ${currency}`;
+    return `$${formatNumber(feeData.fee.toString())}`;
   }, [feeData, isFeeLoading]);
 
   // Only show fee data if it matches the current input
@@ -182,16 +179,6 @@ export function NewBridge() {
     return "";
   }, [fromAmount, toAmount, debouncedAmount, validFeeData, feeType]);
 
-  const toUnitsWithFees = useMemo(() => {
-    if (!calculatedAmount || calculatedAmount === "" || !validFeeData)
-      return "";
-    return String(
-      feeType === FeeType.ExactIn
-        ? validFeeData.amountIn
-        : validFeeData.amountOut
-    );
-  }, [calculatedAmount, validFeeData, feeType]);
-
   // Determine if amount exceeds limit based on fee error
   const limitError = useMemo(() => {
     const inputAmount = feeType === FeeType.ExactIn ? fromAmount : toAmount;
@@ -209,25 +196,30 @@ export function NewBridge() {
     return null;
   }, [fromAmount, toAmount, feeErrorData, feeType]);
 
-  const isWithdrawDisabled = useMemo(() => {
-    return (
-      !!balanceError ||
-      !!addressError ||
-      isWithdrawLoading ||
-      isFeeLoading ||
-      !!feeErrorData ||
-      !destinationAddress ||
-      !!addressError
-    );
-  }, [
-    balanceError,
-    addressError,
-    isWithdrawLoading,
-    isFeeLoading,
-    feeErrorData,
-    destinationAddress,
-    addressError,
-  ]);
+  const handleSwitch = () => {
+    setIsSwitched(!isSwitched);
+    setBalanceError("");
+    setAddressError("");
+    setMemo("");
+    setDestinationChainId(base.chainId);
+    manualStellarAddress.reset();
+    swapSourceAndDestination();
+  };
+
+  const handleCreateTrustline = async () => {
+    // Check XLM balance before creating trustline
+    const xlmBalanceNum = parseFloat(xlmBalance.balance);
+    if (xlmBalanceNum < 1.5) {
+      toast.error("Insufficient XLM balance", {
+        description: `You need at least 1.5 XLM to create a ${stellarCurrency} trustline. Please add more XLM to your wallet.`,
+        duration: 5000,
+      });
+      return;
+    }
+
+    // If balance is sufficient, proceed with trustline creation
+    await createTrustline();
+  };
 
   // Debounce amount input
   useEffect(() => {
@@ -261,103 +253,26 @@ export function NewBridge() {
 
   // Clear manual address when wallet connects (user preference for connected wallet)
   useEffect(() => {
-    if (stellarConnected && manualStellarAddress.address) {
-      manualStellarAddress.reset();
+    if (stellarConnected) {
+      if (manualStellarAddress.address) {
+        manualStellarAddress.reset();
+      }
+
+      console.log("isDestinationAddressValid", isDestinationAddressValid);
+      console.log("stellarAddress", stellarAddress);
+
+      setDestinationAddress(stellarAddress);
+
+      if (!isDestinationAddressValid) {
+        setAddressError("Invalid address");
+      } else {
+        setAddressError("");
+      }
+    } else {
+      setDestinationAddress("");
+      setAddressError("");
     }
   }, [stellarConnected]);
-
-  // Get destination chain name for button text
-  const destinationChainName = useMemo(() => {
-    return (
-      supportedPayoutChains.find((c) => c?.chainId === destinationChainId)
-        ?.name || "Base"
-    );
-  }, [destinationChainId]);
-
-  // Use withdraw logic hook (when isSwitched = true)
-  const { handleWithdraw: baseHandleWithdraw } = useWithdrawLogic({
-    currency,
-    amount: fromAmount,
-    feeAmount: feeData?.fee.toFixed(2) || "0",
-    destinationAddress,
-    destinationChainId,
-    feeType,
-    onLoadingChange: setIsWithdrawLoading,
-    isAdmin,
-  });
-
-  const handleWithdraw = async () => {
-    const success = await baseHandleWithdraw();
-    if (success) {
-      setFromAmount("");
-      setToAmount("");
-      setDestinationAddress("");
-    }
-  };
-
-  // Use deposit logic hook (when isSwitched = false)
-  const {
-    intentConfig,
-    ableToPay,
-    isPreparingConfig,
-    handlePaymentCompleted: baseHandlePaymentCompleted,
-  } = useDepositLogic({
-    appId,
-    amount: fromAmount,
-    memo,
-    feeType,
-    isAdmin,
-    // Only pass destinationStellarAddress when using manual address (not connected)
-    destinationStellarAddress: stellarConnected
-      ? undefined
-      : manualStellarAddress.address,
-    manualTrustlineExists: manualStellarAddress.trustlineExists,
-    currency: isCurrencyEUR
-      ? [TokenSymbol.EURC]
-      : [TokenSymbol.USDC, TokenSymbol.USDT],
-  });
-
-  // Wrap payment completed to clear amount
-  const handlePaymentCompleted = (paymentData: PaymentCompletedEvent) => {
-    baseHandlePaymentCompleted(paymentData);
-    setFromAmount("");
-    setToAmount("");
-    setMemo("");
-  };
-
-  const handleSwitch = () => {
-    // Use BridgeProvider's swap functionality
-    swapSourceAndDestination();
-    
-    // Toggle local state
-    setIsSwitched(!isSwitched);
-    setBalanceError("");
-    setAddressError("");
-    setDestinationAddress("");
-    setMemo("");
-    setDestinationChainId(base.chainId);
-    manualStellarAddress.reset();
-    
-    // Clear amounts
-    setFromAmount("");
-    setToAmount("");
-    setFeeType(FeeType.ExactIn);
-  };
-
-  const handleCreateTrustline = async () => {
-    // Check XLM balance before creating trustline
-    const xlmBalanceNum = parseFloat(xlmBalance.balance);
-    if (xlmBalanceNum < 1.5) {
-      toast.error("Insufficient XLM balance", {
-        description: `You need at least 1.5 XLM to create a ${stellarCurrency} trustline. Please add more XLM to your wallet.`,
-        duration: 5000,
-      });
-      return;
-    }
-
-    // If balance is sufficient, proceed with trustline creation
-    await createTrustline();
-  };
 
   // Validate balance when amount changes and user is bridging from Stellar
   useEffect(() => {
@@ -396,13 +311,6 @@ export function NewBridge() {
     }
   }, [calculatedAmount, feeType]);
 
-  // Lock destination chain to Base when EURC is active in withdraw mode
-  useEffect(() => {
-    if (isCurrencyEUR && isSwitched) {
-      setDestinationChainId(base.chainId);
-    }
-  }, [isCurrencyEUR, isSwitched]);
-
   return (
     <div className="w-full max-w-xl mx-auto">
       <div
@@ -430,7 +338,7 @@ export function NewBridge() {
               </span>
             ) : null}
 
-            <TokenSelector />
+            {/* <TokenSelector /> */}
           </div>
         </div>
 
@@ -455,15 +363,9 @@ export function NewBridge() {
               </div>
             )}
           </div>
-          <ChainBadge
-            isSwitched={isSwitched}
-            isFrom={true}
-            preferredSymbol={
-              isCurrencyEUR
-                ? [TokenSymbol.EURC]
-                : [TokenSymbol.USDC, TokenSymbol.USDT]
-            }
-            className="absolute top-2 right-2"
+          <TokenSelectorTrigger
+            selector={sourceSelector}
+            modalTitle="Select Source Token"
           />
         </BridgeCard>
 
@@ -481,52 +383,30 @@ export function NewBridge() {
               setFeeType(FeeType.ExactOut);
             }}
           />
-
-          {!isSwitched || isCurrencyEUR ? (
-            <ChainBadge
-              isSwitched={isSwitched}
-              isFrom={false}
-              preferredSymbol={
-                isCurrencyEUR
-                  ? [TokenSymbol.EURC]
-                  : [TokenSymbol.USDC, TokenSymbol.USDT]
-              }
-              className="absolute top-2 right-2"
-            />
-          ) : (
-            <ChainSelector
-              value={destinationChainId}
-              className="absolute top-2 right-2"
-              onChange={(chainId) => {
-                setDestinationChainId(chainId);
-                // Clear address when chain changes
-                setDestinationAddress("");
-                setAddressError("");
-              }}
-            />
-          )}
+          <TokenSelectorTrigger
+            selector={destinationSelector}
+            modalTitle="Select Destination Token"
+          />
         </BridgeCard>
 
-        {((fromAmount && parseFloat(fromAmount) > 0) ||
-          (toAmount && parseFloat(toAmount) > 0)) &&
-          !limitError && (
-            <div className="flex items-center justify-between mt-3">
-              <div className="text-xs sm:text-sm">
-                <p className="text-neutral-500 dark:text-neutral-400">Fees:</p>
-                <b className="text-neutral-900 dark:text-neutral-50">
-                  {isFeeLoading ? "Calculating..." : fees}
-                </b>
-              </div>
-              <div className="text-xs sm:text-sm text-right">
-                <p className="text-neutral-500 dark:text-neutral-400">
-                  Estimated time:
-                </p>
-                <b className="text-neutral-900 dark:text-neutral-50">
-                  {"<"}1 minute
-                </b>
-              </div>
+        {!limitError && (
+          <div className="flex items-center justify-between mt-3">
+            <div className="text-xs sm:text-sm">
+              <p className="text-neutral-500 dark:text-neutral-400">Fees:</p>
+              <b className="text-neutral-900 dark:text-neutral-50">
+                {isFeeLoading ? "Calculating..." : fees}
+              </b>
             </div>
-          )}
+            <div className="text-xs sm:text-sm text-right">
+              <p className="text-neutral-500 dark:text-neutral-400">
+                Estimated time:
+              </p>
+              <b className="text-neutral-900 dark:text-neutral-50">
+                {"<"}1 minute
+              </b>
+            </div>
+          </div>
+        )}
 
         {/* Chain Selector & Address Input - Only show when withdrawing (Stellar to multi-chain) */}
         {isSwitched && (
@@ -538,7 +418,7 @@ export function NewBridge() {
             )}
           >
             <DestinationAddressInput
-              value={destinationAddress}
+              value={destinationAddress || ""}
               onChange={setDestinationAddress}
               error={addressError}
               onErrorChange={setAddressError}
@@ -604,7 +484,13 @@ export function NewBridge() {
                       </div>
                     </div>
                   </div>
-                ) : null}
+                ) : (
+                  <BridgePayButton
+                    appId={appId}
+                    amount={fromAmount || "0"}
+                    feeType={feeType as FeeType}
+                  />
+                )}
               </>
             ) : (
               // Show manual Stellar address input if wallet is not connected
@@ -656,75 +542,6 @@ export function NewBridge() {
               <div className="grow border-t border-neutral-200 dark:border-neutral-700" />
             </div>
           )}
-
-        {/* Connect Wallet / Bridge Button */}
-        <div className="mt-3">
-          {isSwitched ? (
-            // Withdraw Button - Requires wallet connection
-            stellarConnected ? (
-              <Button
-                onClick={handleWithdraw}
-                disabled={isWithdrawDisabled}
-                size="lg"
-                className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl"
-              >
-                {(isWithdrawLoading || isFeeLoading) && (
-                  <Loader2 className="size-4 sm:size-5 animate-spin" />
-                )}
-                {isFeeLoading
-                  ? "Loading fee..."
-                  : `Bridge ${stellarCurrency} to ${destinationChainName}`}
-              </Button>
-            ) : (
-              <StellarWalletConnect
-                disabled={!!limitError}
-                className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl"
-              />
-            )
-          ) : (
-            // Deposit Button - Can work with or without wallet connection
-            <>
-              {stellarConnected && stellarAddress ? (
-                // User is connected - show deposit button
-                <DepositButton
-                  intentConfig={intentConfig}
-                  ableToPay={
-                    ableToPay &&
-                    toUnitsWithFees !== "" &&
-                    parseFloat(toUnitsWithFees) > 0
-                  }
-                  isPreparingConfig={isPreparingConfig}
-                  isFeeLoading={isFeeLoading}
-                  hasFeeError={!!feeErrorData}
-                  onPaymentCompleted={handlePaymentCompleted}
-                />
-              ) : manualStellarAddress.address &&
-                manualStellarAddress.trustlineExists ? (
-                // User not connected, but has filled Stellar address and trustline exists
-                <DepositButton
-                  intentConfig={intentConfig}
-                  ableToPay={
-                    ableToPay &&
-                    toUnitsWithFees !== "" &&
-                    parseFloat(toUnitsWithFees) > 0 &&
-                    !!fromAmount &&
-                    parseFloat(fromAmount) > 0
-                  }
-                  isPreparingConfig={isPreparingConfig}
-                  isFeeLoading={isFeeLoading}
-                  hasFeeError={!!feeErrorData}
-                  onPaymentCompleted={handlePaymentCompleted}
-                />
-              ) : (
-                // User not connected and conditions not met - show connect wallet
-                <StellarWalletConnect
-                  disabled={!!limitError}
-                  className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl"
-                />
-              )}
-            </>
-          )}
-        </div>
       </div>
 
       {/* History Dialog */}
