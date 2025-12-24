@@ -33,12 +33,9 @@ import { StellarBalanceCard } from "./StellarBalanceCard";
 import { TokenAmountInput } from "./TokenAmountInput";
 import { getStellarHistoryForWallet } from "./utils/history";
 
-import { cn } from "@/lib/utils";
-import { useBridge } from "./providers/BridgeProvider";
 import { TokenSelector } from "./TokenSelector";
 
 export function NewBridge() {
-  const { swapSourceAndDestination } = useBridge();
   const [feeType, setFeeType] = useState<FeeType>(FeeType.ExactIn);
   const [fromAmount, setFromAmount] = useState<string | undefined>("");
   const [toAmount, setToAmount] = useState<string | undefined>("");
@@ -326,10 +323,6 @@ export function NewBridge() {
   };
 
   const handleSwitch = () => {
-    // Use BridgeProvider's swap functionality
-    swapSourceAndDestination();
-
-    // Toggle local state
     setIsSwitched(!isSwitched);
     setBalanceError("");
     setAddressError("");
@@ -337,11 +330,9 @@ export function NewBridge() {
     setMemo("");
     setDestinationChainId(base.chainId);
     manualStellarAddress.reset();
-
-    // Clear amounts
-    setFromAmount("");
-    setToAmount("");
-    setFeeType(FeeType.ExactIn);
+    // setFromAmount("");
+    // setToAmount("");
+    // setFeeType(FeeType.ExactIn);
   };
 
   const handleCreateTrustline = async () => {
@@ -530,13 +521,7 @@ export function NewBridge() {
 
         {/* Chain Selector & Address Input - Only show when withdrawing (Stellar to multi-chain) */}
         {isSwitched && (
-          <div
-            className={cn(
-              "mt-3",
-              feeData &&
-                " border-t border-neutral-200 dark:border-neutral-700 pt-3"
-            )}
-          >
+          <div className="mt-3 border-t border-neutral-200 dark:border-neutral-700 pt-3">
             <DestinationAddressInput
               value={destinationAddress}
               onChange={setDestinationAddress}
@@ -613,9 +598,9 @@ export function NewBridge() {
                   currency={stellarCurrency}
                   value={manualStellarAddress.address}
                   onChange={manualStellarAddress.setAddress}
-                  onTrustlineStatusChange={
-                    manualStellarAddress.setTrustlineStatus
-                  }
+                  onTrustlineStatusChange={(address, exists, balance) => {
+                    manualStellarAddress.setTrustlineStatus(exists, balance);
+                  }}
                   error={manualStellarAddress.addressError}
                   onErrorChange={manualStellarAddress.setAddressError}
                 />
@@ -644,8 +629,7 @@ export function NewBridge() {
           </div>
         )}
 
-        {!isSwitched &&
-          !stellarConnected &&
+        {!stellarConnected &&
           !manualStellarAddress.trustlineExists &&
           !limitError && (
             <div className="flex items-center gap-3 mt-3">

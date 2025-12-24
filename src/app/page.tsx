@@ -1,7 +1,10 @@
 import { ContactSupport } from "@/components/ContactSupport";
 import { NewBridge } from "@/components/new-bridge/NewBridge";
+import { BridgeProvider } from "@/components/new-bridge/providers/BridgeProvider";
 import { PoweredBy } from "@/components/PoweredBy";
+import { Providers } from "@/components/Providers";
 import { SupportedBy } from "@/components/SupportedBy";
+import { StellarWalletProvider } from "@/contexts/StellarWalletContext";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -52,8 +55,13 @@ export default function Home() {
       <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
         <div className="max-w-2xl mx-auto">
           {/* Bridge Component */}
-
-          <NewBridge />
+          <StellarWalletProvider>
+            <Providers>
+              <BridgeProvider>
+                <NewBridge />
+              </BridgeProvider>
+            </Providers>
+          </StellarWalletProvider>
 
           <PoweredBy />
 
