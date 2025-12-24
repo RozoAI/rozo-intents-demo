@@ -22,6 +22,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
   arbitrum,
@@ -36,10 +41,11 @@ import {
   solana,
   supportedTokens,
   Token,
+  TokenSymbol,
 } from "@rozoai/intent-common";
 import { CheckIcon } from "lucide-react";
 import Image from "next/image";
-import { ReactNode, useEffect, useState } from "react";
+import React, { ReactNode, useCallback, useEffect, useState } from "react";
 
 interface TokenSelectorPopoverProps {
   open?: boolean;
@@ -54,6 +60,8 @@ interface TokenSelectorPopoverProps {
   trigger?: ReactNode;
   align?: "start" | "center" | "end";
   side?: "top" | "right" | "bottom" | "left";
+  oppositeToken?: Token | null; // Source token for destination selector, destination token for source selector
+  isDestination?: boolean; // true for destination selector, false for source selector
 }
 
 const defaultListChains = Array.from(supportedTokens.keys())
@@ -87,12 +95,82 @@ export function TokenSelectorPopover({
   trigger,
   align = "start",
   side = "right",
+  oppositeToken,
+  isDestination = false,
 }: TokenSelectorPopoverProps) {
+  // Determine if a token should be disabled
+  // Only disable tokens in destination selector, never in source selector
+  const isTokenDisabled = useCallback(
+    (token: Token): boolean => {
+      // Never disable tokens in source selector - users should always be able to choose any token as source
+      if (!isDestination) return false;
+
+      // Only apply restrictions in destination selector
+      if (!oppositeToken) return false;
+
+      const oppositeSymbol = oppositeToken.symbol;
+      const tokenSymbol = token.symbol;
+
+      // If source token is USDC or USDT, disable EURC in destination
+      if (
+        (oppositeSymbol === TokenSymbol.USDC ||
+          oppositeSymbol === TokenSymbol.USDT) &&
+        tokenSymbol === TokenSymbol.EURC
+      ) {
+        return true;
+      }
+
+      // If source token is EURC, disable USDC and USDT in destination
+      if (
+        oppositeSymbol === TokenSymbol.EURC &&
+        (tokenSymbol === TokenSymbol.USDC || tokenSymbol === TokenSymbol.USDT)
+      ) {
+        return true;
+      }
+
+      return false;
+    },
+    [oppositeToken, isDestination]
+  );
+
+  // Get disabled reason message
+  const getDisabledReason = useCallback(
+    (token: Token): string | null => {
+      // Only show disabled reason in destination selector
+      if (!isDestination || !oppositeToken) return null;
+
+      const oppositeSymbol = oppositeToken.symbol;
+      const tokenSymbol = token.symbol;
+
+      if (
+        (oppositeSymbol === TokenSymbol.USDC ||
+          oppositeSymbol === TokenSymbol.USDT) &&
+        tokenSymbol === TokenSymbol.EURC
+      ) {
+        return "EURC can only be transferred from EURC";
+      }
+
+      if (
+        oppositeSymbol === TokenSymbol.EURC &&
+        (tokenSymbol === TokenSymbol.USDC || tokenSymbol === TokenSymbol.USDT)
+      ) {
+        return "EURC can only be transferred to EURC";
+      }
+
+      return null;
+    },
+    [oppositeToken, isDestination]
+  );
+
   const handleSelectChain = (chain: Chain) => {
     onSelectChain(chain);
   };
 
   const handleSelectToken = (token: Token) => {
+    // Prevent selection of disabled tokens
+    if (isTokenDisabled(token)) {
+      return;
+    }
     onSelectToken(token);
     onOpenChange?.(false);
   };
@@ -194,42 +272,69 @@ export function TokenSelectorPopover({
             <div className="p-2 pt-4 md:pt-2">
               {selectedChain && (
                 <div className="grid grid-cols-2 md:grid-cols-1 gap-0.5 md:gap-1">
-                  {displayTokens.map((token) => (
-                    <Item
-                      key={`${selectedChain.chainId}-${token.symbol}`}
-                      variant={
-                        selectedToken?.symbol === token.symbol
-                          ? "outline"
-                          : "default"
-                      }
-                      className={cn(
-                        "w-full flex items-center gap-2 cursor-pointer p-2",
-                        selectedToken?.symbol === token.symbol
-                          ? "bg-accent/50"
-                          : "hover:bg-accent/50"
-                      )}
-                      onClick={() => handleSelectToken(token)}
-                    >
-                      <ItemMedia>
-                        <Image
-                          src={token.logoURI}
-                          alt={token.symbol}
-                          width={20}
-                          height={20}
-                        />
-                      </ItemMedia>
-                      <ItemContent>
-                        <ItemTitle className="text-sm">
-                          {token.name || token.symbol}
-                        </ItemTitle>
-                      </ItemContent>
-                      {selectedToken?.symbol === token.symbol && (
-                        <ItemActions>
-                          <CheckIcon className="size-3" />
-                        </ItemActions>
-                      )}
-                    </Item>
-                  ))}
+                  {displayTokens.map((token) => {
+                    const disabled = isTokenDisabled(token);
+                    const disabledReason = getDisabledReason(token);
+                    const tokenKey = `${selectedChain.chainId}-${token.symbol}`;
+
+                    const tokenItem = (
+                      <Item
+                        variant={
+                          selectedToken?.symbol === token.symbol
+                            ? "outline"
+                            : "default"
+                        }
+                        className={cn(
+                          "w-full flex items-center gap-2 p-2",
+                          disabled
+                            ? "opacity-50 cursor-not-allowed"
+                            : "cursor-pointer",
+                          selectedToken?.symbol === token.symbol
+                            ? "bg-accent/50"
+                            : !disabled && "hover:bg-accent/50"
+                        )}
+                        onClick={
+                          disabled ? undefined : () => handleSelectToken(token)
+                        }
+                      >
+                        <ItemMedia>
+                          <Image
+                            src={token.logoURI}
+                            alt={token.symbol}
+                            width={20}
+                            height={20}
+                          />
+                        </ItemMedia>
+                        <ItemContent className="flex-1 min-w-0">
+                          <ItemTitle className="text-sm">
+                            {token.name || token.symbol}
+                          </ItemTitle>
+                        </ItemContent>
+                        {selectedToken?.symbol === token.symbol && (
+                          <ItemActions>
+                            <CheckIcon className="size-3" />
+                          </ItemActions>
+                        )}
+                      </Item>
+                    );
+
+                    if (disabled && disabledReason) {
+                      return (
+                        <Tooltip key={tokenKey}>
+                          <TooltipTrigger asChild>{tokenItem}</TooltipTrigger>
+                          <TooltipContent>
+                            <p>{disabledReason}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    }
+
+                    return (
+                      <React.Fragment key={tokenKey}>
+                        {tokenItem}
+                      </React.Fragment>
+                    );
+                  })}
                 </div>
               )}
             </div>

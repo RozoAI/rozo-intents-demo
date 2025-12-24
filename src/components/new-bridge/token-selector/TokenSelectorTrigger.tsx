@@ -67,6 +67,8 @@ export function TokenSelectorTrigger({
         onSelectToken={selector.onSelectToken}
         availableChains={selector.availableChains}
         availableTokens={selector.availableTokens}
+        oppositeToken={selector.oppositeToken}
+        isDestination={selector.isDestination}
         trigger={
           <Button
             variant="outline"

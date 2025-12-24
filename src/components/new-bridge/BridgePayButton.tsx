@@ -177,7 +177,19 @@ export function BridgePayButton({
     );
   }
 
-  if (intentConfig === null || intentConfig.toAddress === "") {
+  if (!bridge.sourceToken || !bridge.destinationToken) {
+    return (
+      <Button
+        size="lg"
+        className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl cursor-pointer"
+        disabled
+      >
+        Enter a source and destination token to continue
+      </Button>
+    );
+  }
+
+  if (intentConfig === null) {
     return (
       <Button
         size="lg"

@@ -10,6 +10,8 @@ export interface SourceSelector {
   availableTokens: Token[];
   onSelectChain: (chain: Chain) => void;
   onSelectToken: (token: Token) => void;
+  oppositeToken: Token | null; // Destination token for source selector
+  isDestination: false; // Always false for source selector
 }
 
 export interface DestinationSelector {
@@ -19,6 +21,8 @@ export interface DestinationSelector {
   availableTokens: Token[];
   onSelectChain: (chain: Chain) => void;
   onSelectToken: (token: Token) => void;
+  oppositeToken: Token | null; // Source token for destination selector
+  isDestination: true; // Always true for destination selector
 }
 
 /**
@@ -28,6 +32,7 @@ export function useSourceSelector(): SourceSelector {
   const {
     sourceChain,
     sourceToken,
+    destinationToken,
     availableSourceChains,
     availableSourceTokens,
     setSourceChain,
@@ -41,6 +46,8 @@ export function useSourceSelector(): SourceSelector {
     availableTokens: availableSourceTokens,
     onSelectChain: setSourceChain,
     onSelectToken: setSourceToken,
+    oppositeToken: destinationToken, // Destination token for source selector
+    isDestination: false,
   };
 }
 
@@ -49,6 +56,7 @@ export function useSourceSelector(): SourceSelector {
  */
 export function useDestinationSelector(): DestinationSelector {
   const {
+    sourceToken,
     destinationChain,
     destinationToken,
     availableDestinationChains,
@@ -64,5 +72,7 @@ export function useDestinationSelector(): DestinationSelector {
     availableTokens: availableDestinationTokens,
     onSelectChain: setDestinationChain,
     onSelectToken: setDestinationToken,
+    oppositeToken: sourceToken, // Source token for destination selector
+    isDestination: true,
   };
 }
