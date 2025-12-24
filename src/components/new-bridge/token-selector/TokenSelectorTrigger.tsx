@@ -24,7 +24,7 @@ import { ChevronDown } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import { DestinationSelector, SourceSelector } from "../providers/hooks";
-import { TokenSelectorModal } from "./TokenSelectorModal";
+import { TokenSelectorPopover } from "./TokenSelectorPopover";
 
 interface TokenSelectorTriggerProps {
   buttonLabel?: string;
@@ -57,44 +57,7 @@ export function TokenSelectorTrigger({
 
   return (
     <>
-      <Button
-        variant="outline"
-        size="lg"
-        className={cn(className, "px-3! w-36 h-12!")}
-        onClick={() => setOpen(true)}
-      >
-        <div className="flex items-center gap-2 relative flex-1">
-          {selector.selectedToken ? (
-            <>
-              <div className="relative">
-                <Image
-                  src={selector.selectedToken.logoURI}
-                  alt={selector.selectedToken.symbol}
-                  width={24}
-                  height={24}
-                />
-                <div className="absolute -bottom-0.5 -right-1 rounded-full">
-                  {selector.selectedChain &&
-                    chainToLogo[selector.selectedChain.chainId]}
-                </div>
-              </div>
-
-              <div className="flex-1 ml-0.5">
-                <p className="font-medium text-left text-sm">
-                  {selector.selectedToken.symbol}
-                </p>
-                <p className="text-xs text-muted-foreground text-left">
-                  {selector.selectedChain?.name}
-                </p>
-              </div>
-            </>
-          ) : (
-            buttonLabel
-          )}
-        </div>
-        <ChevronDown className="size-4" />
-      </Button>
-      <TokenSelectorModal
+      <TokenSelectorPopover
         open={open}
         onOpenChange={setOpen}
         title={modalTitle}
@@ -104,6 +67,49 @@ export function TokenSelectorTrigger({
         onSelectToken={selector.onSelectToken}
         availableChains={selector.availableChains}
         availableTokens={selector.availableTokens}
+        trigger={
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              className,
+              "px-3 py-1! sm:px-3.5 h-10 sm:h-10 w-full sm:w-[150px]"
+            )}
+            onClick={() => setOpen(true)}
+          >
+            <div className="flex items-center gap-2 relative flex-1 min-w-0">
+              {selector.selectedToken ? (
+                <>
+                  <div className="relative shrink-0">
+                    <Image
+                      src={selector.selectedToken.logoURI}
+                      alt={selector.selectedToken.symbol}
+                      width={27}
+                      height={27}
+                      className="size-6"
+                    />
+                    <div className="absolute -bottom-0.5 -right-1 rounded-full">
+                      {selector.selectedChain &&
+                        chainToLogo[selector.selectedChain.chainId]}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 ml-1.5 min-w-0">
+                    <p className="font-medium text-left md:text-sm text-xs truncate">
+                      {selector.selectedToken.symbol}
+                    </p>
+                    <p className="text-xs text-muted-foreground text-left truncate">
+                      {selector.selectedChain?.name}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <span className="truncate text-sm">{buttonLabel}</span>
+              )}
+            </div>
+            <ChevronDown className="size-4 shrink-0 ml-1.5" />
+          </Button>
+        }
       />
     </>
   );

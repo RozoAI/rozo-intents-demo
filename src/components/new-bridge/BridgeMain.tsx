@@ -4,10 +4,16 @@ import { useStellarWallet } from "@/contexts/StellarWalletContext";
 import { GetFeeError, useGetFee } from "@/hooks/use-get-fee";
 import { formatNumber } from "@/lib/formatNumber";
 import { DEFAULT_INTENT_PAY_CONFIG } from "@/lib/intentPay";
-import { base, FeeType, rozoStellar, TokenSymbol } from "@rozoai/intent-common";
+import {
+  base,
+  FeeType,
+  isValidStellarAddress,
+  rozoStellar,
+  TokenSymbol,
+} from "@rozoai/intent-common";
 import { AlertTriangle, Clock, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { AmountLimitWarning } from "./AmountLimitWarning";
@@ -15,7 +21,6 @@ import { BridgeCard } from "./BridgeCard";
 import { BridgeSwapButton } from "./BridgeSwapButton";
 import { DestinationAddressInput } from "./DestinationAddressInput";
 import { HistoryDialog } from "./HistoryDialog";
-import { useManualStellarAddress } from "./hooks/useManualStellarAddress";
 import { MemoInput } from "./MemoInput";
 import { StellarAddressInput } from "./StellarAddressInput";
 import { TokenAmountInput } from "./TokenAmountInput";
@@ -41,7 +46,7 @@ export function BridgeMain() {
   const sourceSelector = useSourceSelector();
   const destinationSelector = useDestinationSelector();
   // Manual Stellar address for deposits (when wallet not connected)
-  const manualStellarAddress = useManualStellarAddress();
+  // const manualStellarAddress = useManualStellarAddress();
 
   const [feeType, setFeeType] = useState<FeeType>(FeeType.ExactIn);
   const [fromAmount, setFromAmount] = useState<string | undefined>("");
@@ -238,11 +243,11 @@ export function BridgeMain() {
 
   const handleSwitch = () => {
     setIsSwitched(!isSwitched);
+    setDestinationAddress("");
     setBalanceError("");
     setAddressError("");
     setMemo("");
     setDestinationChainId(base.chainId);
-    manualStellarAddress.reset();
     swapSourceAndDestination();
   };
 
@@ -294,10 +299,6 @@ export function BridgeMain() {
   // Clear manual address when wallet connects (user preference for connected wallet)
   useEffect(() => {
     if (stellarConnected) {
-      if (manualStellarAddress.address) {
-        manualStellarAddress.reset();
-      }
-
       // Only set Stellar address if destination chain is Stellar
       if (destinationChain?.chainId === rozoStellar.chainId) {
         setDestinationAddress(stellarAddress);
@@ -307,12 +308,6 @@ export function BridgeMain() {
         } else {
           setAddressError("");
         }
-      }
-    } else {
-      // Only clear address if destination chain is Stellar
-      if (destinationChain?.chainId === rozoStellar.chainId) {
-        setDestinationAddress("");
-        setAddressError("");
       }
     }
   }, [
@@ -358,6 +353,51 @@ export function BridgeMain() {
     isDestinationAddressValid,
     addressError,
   ]);
+
+  const handleManualAddressErrorChange = useCallback((error: string) => {
+    setAddressError(error);
+    // Only clear destination address if there's an actual error
+    // Don't clear when error is being cleared (empty string)
+    if (error && error.trim() !== "") {
+      setDestinationAddress("");
+    }
+  }, []);
+
+  const handleManualDestinationAddressChange = useCallback(
+    (address: string) => {
+      // Clear destination address if input is empty
+      if (!address || address.trim() === "") {
+        setDestinationAddress("");
+        setAddressError("");
+      } else {
+        setDestinationAddress(address);
+      }
+    },
+    [setDestinationAddress]
+  );
+
+  // Handle trustline status change - only set address if valid and trustline exists
+  const handleTrustlineStatusChange = useCallback(
+    (address: string, exists: boolean) => {
+      // Only proceed if trustline exists
+      if (!exists) {
+        return;
+      }
+
+      // Validate the address before setting
+      try {
+        if (!isValidStellarAddress(address)) {
+          return;
+        }
+      } catch {
+        // Invalid address format
+        return;
+      }
+
+      setDestinationAddress(address);
+    },
+    []
+  );
 
   // Validate balance when amount changes and user is bridging from Stellar
   useEffect(() => {
@@ -557,98 +597,96 @@ export function BridgeMain() {
           <div className={cn("mt-3")}>
             <DestinationAddressInput
               value={destinationAddress || ""}
-              onChange={setDestinationAddress}
+              onChange={handleManualDestinationAddressChange}
               error={addressError}
-              onErrorChange={setAddressError}
+              onErrorChange={handleManualAddressErrorChange}
               chainId={destinationChainId}
             />
           </div>
         )}
 
-        {/* Deposit Configuration - Only show when depositing (multi-chain to Stellar) */}
-        <div className="mt-3">
-          {stellarConnected ? (
-            // Show trustline warning if wallet is connected
-            <>
-              {!hideTrustlineWarning && hasEnoughXLM ? (
-                <div className="p-4 rounded-xl border border-yellow-500/20 bg-yellow-50 dark:bg-yellow-500/10">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
-                    <div className="space-y-3 flex-1">
-                      <div>
-                        <p className="font-medium text-yellow-900 dark:text-yellow-100 text-sm">
-                          {stellarCurrency} Trustline Required
-                        </p>
-                        <p className="text-xs text-yellow-700 dark:text-yellow-200/80 mt-1">
-                          Your Stellar wallet needs to establish a trustline for{" "}
-                          {stellarCurrency} to receive deposits. This is a
-                          one-time setup.
-                        </p>
-                      </div>
-                      <Button
-                        onClick={handleCreateTrustline}
-                        disabled={
-                          trustlineStatus.checking || trustlineStatus.creating
-                        }
-                        size="sm"
-                        className="bg-yellow-600 hover:bg-yellow-700 text-white h-9"
-                      >
-                        {trustlineStatus.creating ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Adding...
-                          </>
-                        ) : (
-                          `Add ${stellarCurrency} Trustline`
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ) : !hideTrustlineWarning && !hasEnoughXLM ? (
-                <div className="p-4 rounded-xl border border-orange-500/20 bg-orange-50 dark:bg-orange-500/10">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 mt-0.5 shrink-0" />
-                    <div className="space-y-1">
-                      <p className="font-medium text-orange-900 dark:text-orange-100 text-sm">
-                        Insufficient XLM Balance
+        {stellarConnected ? (
+          // Show trustline warning if wallet is connected
+          <div className="mt-3">
+            {!hideTrustlineWarning && hasEnoughXLM ? (
+              <div className="p-4 rounded-xl border border-yellow-500/20 bg-yellow-50 dark:bg-yellow-500/10">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
+                  <div className="space-y-3 flex-1">
+                    <div>
+                      <p className="font-medium text-yellow-900 dark:text-yellow-100 text-sm">
+                        {stellarCurrency} Trustline Required
                       </p>
-                      <p className="text-xs text-orange-700 dark:text-orange-200/80">
-                        You need at least 1.5 XLM to create a {stellarCurrency}{" "}
-                        trustline. Current balance: {xlmBalance.balance} XLM
+                      <p className="text-xs text-yellow-700 dark:text-yellow-200/80 mt-1">
+                        Your Stellar wallet needs to establish a trustline for{" "}
+                        {stellarCurrency} to receive deposits. This is a
+                        one-time setup.
                       </p>
                     </div>
+                    <Button
+                      onClick={handleCreateTrustline}
+                      disabled={
+                        trustlineStatus.checking || trustlineStatus.creating
+                      }
+                      size="sm"
+                      className="bg-yellow-600 hover:bg-yellow-700 text-white h-9"
+                    >
+                      {trustlineStatus.creating ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Adding...
+                        </>
+                      ) : (
+                        `Add ${stellarCurrency} Trustline`
+                      )}
+                    </Button>
                   </div>
                 </div>
-              ) : (
-                <BridgePayButton
-                  appId={appId}
-                  amount={fromAmount || "0"}
-                  feeType={feeType as FeeType}
-                />
+              </div>
+            ) : !hideTrustlineWarning && !hasEnoughXLM ? (
+              <div className="p-4 rounded-xl border border-orange-500/20 bg-orange-50 dark:bg-orange-500/10">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 mt-0.5 shrink-0" />
+                  <div className="space-y-1">
+                    <p className="font-medium text-orange-900 dark:text-orange-100 text-sm">
+                      Insufficient XLM Balance
+                    </p>
+                    <p className="text-xs text-orange-700 dark:text-orange-200/80">
+                      You need at least 1.5 XLM to create a {stellarCurrency}{" "}
+                      trustline. Current balance: {xlmBalance.balance} XLM
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : destinationChain?.chainId === rozoStellar.chainId &&
+          !stellarConnected ? (
+          // Show manual Stellar address input if wallet is not connected
+          <div className="mt-3">
+            <StellarAddressInput
+              currency={stellarCurrency}
+              value={destinationAddress || ""}
+              onChange={handleManualDestinationAddressChange}
+              onTrustlineStatusChange={handleTrustlineStatusChange}
+              error={addressError}
+              onErrorChange={handleManualAddressErrorChange}
+            />
+            {/* Show memo input only if address is valid and trustline exists */}
+            {destinationAddress &&
+              isDestinationAddressValid &&
+              !addressError && (
+                <MemoInput value={memo} onChange={setMemo} className="mt-4" />
               )}
-            </>
-          ) : (
-            // Show manual Stellar address input if wallet is not connected
-            <>
-              <StellarAddressInput
-                currency={stellarCurrency}
-                value={manualStellarAddress.address}
-                onChange={manualStellarAddress.setAddress}
-                onTrustlineStatusChange={
-                  manualStellarAddress.setTrustlineStatus
-                }
-                error={manualStellarAddress.addressError}
-                onErrorChange={manualStellarAddress.setAddressError}
-              />
-              {/* Show memo input only if address is valid and trustline exists */}
-              {manualStellarAddress.address &&
-                manualStellarAddress.trustlineExists &&
-                !manualStellarAddress.addressError && (
-                  <MemoInput value={memo} onChange={setMemo} className="mt-4" />
-                )}
-            </>
-          )}
+          </div>
+        ) : null}
+
+        <div className="mt-3">
+          <BridgePayButton
+            appId={appId}
+            amount={fromAmount || "0"}
+            feeType={feeType as FeeType}
+          />
         </div>
 
         {/* Amount Limit Warning */}
@@ -660,19 +698,6 @@ export function BridgeMain() {
             />
           </div>
         )}
-
-        {!isSwitched &&
-          !stellarConnected &&
-          !manualStellarAddress.trustlineExists &&
-          !limitError && (
-            <div className="flex items-center gap-3 mt-3">
-              <div className="grow border-t border-neutral-200 dark:border-neutral-700" />
-              <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                Or
-              </span>
-              <div className="grow border-t border-neutral-200 dark:border-neutral-700" />
-            </div>
-          )}
       </div>
 
       {/* History Dialog */}

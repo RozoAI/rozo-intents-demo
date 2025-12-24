@@ -1,3 +1,4 @@
+import { useStellarWallet } from "@/contexts/StellarWalletContext";
 import {
   ExternalPaymentOptions,
   ExternalPaymentOptionsString,
@@ -60,6 +61,8 @@ export function BridgePayButton({
 }: BridgePayButtonProps) {
   const bridge = useBridge();
   const { resetPayment } = useRozoPayUI();
+  const { stellarConnected } = useStellarWallet();
+
   const [isPreparingPayment, setIsPreparingPayment] = useState(false);
 
   const intentConfig: PayParams | null = useMemo(() => {
@@ -67,7 +70,8 @@ export function BridgePayButton({
       !bridge.sourceToken ||
       !bridge.destinationChain ||
       !bridge.destinationToken ||
-      !bridge.sourceChain
+      !bridge.sourceChain ||
+      !bridge.destinationAddress
     ) {
       return null;
     }
@@ -82,19 +86,21 @@ export function BridgePayButton({
       paymentOptions.push(ExternalPaymentOptions.Ethereum);
     }
 
+    const intent = `Pay with ${bridge.sourceToken?.symbol} on ${bridge.sourceChain?.name} to ${bridge.destinationToken?.symbol} on ${bridge.destinationChain?.name}`;
     return {
       appId,
       toChain: bridge.destinationChain.chainId,
       toToken: bridge.destinationToken.token,
       toUnits: amount,
-      toAddress: bridge.destinationAddress || "",
+      toAddress: bridge.destinationAddress,
       feeType: feeType,
       preferredTokens: [bridge.sourceToken],
-      connectedWalletOnly: bridge.sourceChain.chainId === rozoStellar.chainId,
+      connectedWalletOnly:
+        bridge.sourceChain.chainId === rozoStellar.chainId && stellarConnected,
       paymentOptions,
-      intent: `${bridge.sourceToken?.symbol} to ${bridge.destinationToken?.symbol}`,
+      intent,
       metadata: {
-        intent: `${amount} ${bridge.sourceToken?.symbol} ${bridge.sourceChain?.name} to ${bridge.destinationToken?.symbol} ${bridge.destinationChain?.name}`,
+        intent,
         items: [
           {
             name: "ROZO Intents",
@@ -106,10 +112,13 @@ export function BridgePayButton({
   }, [
     appId,
     amount,
+    feeType,
+    bridge.destinationAddress,
+    stellarConnected,
+    bridge.sourceChain,
     bridge.sourceToken,
     bridge.destinationChain,
     bridge.destinationToken,
-    bridge.sourceChain,
   ]);
 
   useEffect(() => {

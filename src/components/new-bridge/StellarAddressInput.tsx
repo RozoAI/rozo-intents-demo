@@ -1,16 +1,32 @@
 "use client";
 
-import { Label } from "@/components/ui/label";
 import { checkTokenTrustline, isContractAddress } from "@/lib/stellar";
+import { cn } from "@/lib/utils";
 import { isValidStellarAddress } from "@rozoai/intent-common";
-import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Textarea } from "../ui/textarea";
+import { Stellar } from "../icons/chains";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldSet,
+} from "../ui/field";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupTextarea,
+} from "../ui/input-group";
 
 interface StellarAddressInputProps {
   value: string;
-  onChange: (value: string) => void;
-  onTrustlineStatusChange?: (exists: boolean, balance: string) => void;
+  onChange?: (value: string) => void;
+  onTrustlineStatusChange?: (
+    address: string,
+    exists: boolean,
+    balance: string
+  ) => void;
   error?: string;
   onErrorChange?: (error: string) => void;
   currency?: "USDC" | "EURC";
@@ -24,8 +40,19 @@ export function StellarAddressInput({
   onErrorChange,
   currency = "USDC",
 }: StellarAddressInputProps) {
+  const [address, setAddress] = useState(value);
   const [isCheckingTrustline, setIsCheckingTrustline] = useState(false);
   const [trustlineExists, setTrustlineExists] = useState(false);
+
+  // Sync local state with value prop when it changes externally
+  useEffect(() => {
+    setAddress(value);
+    // Reset trustline status when value is cleared externally
+    if (!value || value.trim() === "") {
+      setTrustlineExists(false);
+      setIsCheckingTrustline(false);
+    }
+  }, [value]);
 
   const checkTrustline = useCallback(
     async (address: string) => {
@@ -42,7 +69,7 @@ export function StellarAddressInput({
       // Skip trustline checking for contract addresses (C addresses)
       if (isContractAddress(address)) {
         setTrustlineExists(true);
-        onTrustlineStatusChange?.(true, "0");
+        onTrustlineStatusChange?.(address, true, "0");
         onErrorChange?.("");
         return;
       }
@@ -51,7 +78,7 @@ export function StellarAddressInput({
       try {
         const result = await checkTokenTrustline(address, currency);
         setTrustlineExists(result.exists);
-        onTrustlineStatusChange?.(result.exists, result.balance);
+        onTrustlineStatusChange?.(address, result.exists, result.balance);
 
         if (!result.exists) {
           onErrorChange?.(
@@ -63,7 +90,7 @@ export function StellarAddressInput({
       } catch (err) {
         console.error("Failed to check trustline:", err);
         setTrustlineExists(false);
-        onTrustlineStatusChange?.(false, "0");
+        onTrustlineStatusChange?.(address, false, "0");
         onErrorChange?.(
           "Failed to check trustline. Please verify the address is correct."
         );
@@ -83,12 +110,12 @@ export function StellarAddressInput({
     // Validate address first, catch any errors from unsupported address types
     let isValid = false;
     try {
-      isValid = isValidStellarAddress(value);
+      isValid = isValidStellarAddress(address);
     } catch (err) {
       // Invalid or unsupported address type
       onErrorChange?.("Invalid or unsupported Stellar address format");
       setTrustlineExists(false);
-      onTrustlineStatusChange?.(false, "0");
+      onTrustlineStatusChange?.(address, false, "0");
       return;
     }
 
@@ -97,9 +124,9 @@ export function StellarAddressInput({
     }
 
     // Skip trustline checking for contract addresses (C addresses)
-    if (isContractAddress(value)) {
+    if (isContractAddress(address)) {
       setTrustlineExists(true);
-      onTrustlineStatusChange?.(true, "0");
+      onTrustlineStatusChange?.(address, true, "0");
       onErrorChange?.("");
       return;
     }
@@ -109,11 +136,11 @@ export function StellarAddressInput({
 
     const performCheck = async () => {
       try {
-        const result = await checkTokenTrustline(value, currency);
+        const result = await checkTokenTrustline(address, currency);
         if (cancelled) return;
 
         setTrustlineExists(result.exists);
-        onTrustlineStatusChange?.(result.exists, result.balance);
+        onTrustlineStatusChange?.(address, result.exists, result.balance);
 
         if (!result.exists) {
           onErrorChange?.(
@@ -126,7 +153,7 @@ export function StellarAddressInput({
         if (cancelled) return;
         console.error("Failed to check trustline:", err);
         setTrustlineExists(false);
-        onTrustlineStatusChange?.(false, "0");
+        onTrustlineStatusChange?.(address, false, "0");
         onErrorChange?.(
           "Failed to check trustline. Please verify the address is correct."
         );
@@ -142,14 +169,16 @@ export function StellarAddressInput({
     return () => {
       cancelled = true;
     };
-  }, [currency, value, onTrustlineStatusChange, onErrorChange]);
+  }, [currency, address]);
 
   const handleChange = (inputValue: string) => {
-    onChange(inputValue);
+    onChange?.(inputValue);
+    setAddress(inputValue);
 
     // Reset trustline status when address changes
     setTrustlineExists(false);
-    onTrustlineStatusChange?.(false, "0");
+    // Use inputValue instead of address (which is the old value)
+    onTrustlineStatusChange?.(inputValue, false, "0");
 
     if (inputValue.trim() === "") {
       onErrorChange?.("");
@@ -159,42 +188,46 @@ export function StellarAddressInput({
 
   const handleBlur = () => {
     try {
-      if (value.trim() === "") {
+      if (trustlineExists || isCheckingTrustline) {
+        return;
+      }
+
+      if (address.trim() === "") {
         onErrorChange?.("");
         return;
       }
 
       let isValid = false;
       try {
-        isValid = isValidStellarAddress(value);
+        isValid = isValidStellarAddress(address);
       } catch (err) {
         // Invalid or unsupported address type
         onErrorChange?.("Invalid or unsupported Stellar address format");
         setTrustlineExists(false);
-        onTrustlineStatusChange?.(false, "0");
+        onTrustlineStatusChange?.(address, false, "0");
         return;
       }
 
       if (!isValid) {
         onErrorChange?.("Invalid Stellar address");
         setTrustlineExists(false);
-        onTrustlineStatusChange?.(false, "0");
+        onTrustlineStatusChange?.(address, false, "0");
         return;
       }
 
       // Valid address, check trustline (or skip for contract addresses)
-      checkTrustline(value);
+      checkTrustline(address);
     } catch (err) {
       // Catch any other unexpected errors
       onErrorChange?.("Invalid Stellar address");
       setTrustlineExists(false);
-      onTrustlineStatusChange?.(false, "0");
+      onTrustlineStatusChange?.(address, false, "0");
     }
   };
 
   // Status indicator component
   const StatusIndicator = () => {
-    if (!value || value.trim() === "") {
+    if (!address || address.trim() === "") {
       return null;
     }
 
@@ -214,56 +247,62 @@ export function StellarAddressInput({
       );
     }
 
-    if (trustlineExists) {
-      return (
-        <div className="absolute right-3 top-3">
-          <CheckCircle2 className="size-4 text-green-500" />
-        </div>
-      );
-    }
-
     return null;
   };
 
   return (
-    <div className="space-y-2">
-      <Label
-        htmlFor="stellar-address"
-        className="text-neutral-600 dark:text-neutral-400"
-      >
-        Stellar Address
-      </Label>
-      <div className="relative">
-        <Textarea
-          id="stellar-address"
-          placeholder="Enter Stellar address"
-          value={value}
-          onChange={(e) => handleChange(e.target.value)}
-          onBlur={handleBlur}
-          rows={2}
-          className={`min-h-[40px] sm:min-h-[48px] max-h-[72px] py-2 sm:py-3 pr-10 resize-none overflow-y-auto break-all text-base leading-tight bg-white border-neutral-300 text-neutral-900 placeholder:text-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-500 ${
-            error
-              ? "border-red-500 focus-visible:border-red-500 dark:border-red-500 dark:focus-visible:border-red-500"
-              : trustlineExists
-              ? "border-green-500 focus-visible:border-green-500 dark:border-green-500 dark:focus-visible:border-green-500"
-              : ""
-          }`}
-          style={{ fontSize: "16px" }} // Prevent iOS zoom
-        />
-        <StatusIndicator />
-      </div>
-      {error && (
-        <p className="text-xs text-red-500 dark:text-red-400 wrap-break-word">
-          {error}
-        </p>
-      )}
-      {trustlineExists && !error && (
-        <p className="text-xs text-green-600 dark:text-green-400">
-          {isContractAddress(value)
-            ? "✓ Valid Stellar contract address"
-            : `✓ ${currency} trustline verified`}
-        </p>
-      )}
-    </div>
+    <FieldSet>
+      <FieldGroup>
+        <Field>
+          <InputGroup
+            className={cn(
+              "rounded-xl",
+              error
+                ? "border-red-500 focus-visible:border-red-500 dark:border-red-500 dark:focus-visible:border-red-500"
+                : ""
+            )}
+          >
+            <InputGroupTextarea
+              id="stellar-address"
+              placeholder="Enter your address"
+              value={address}
+              onChange={(e) => handleChange(e.target.value)}
+              onBlur={handleBlur}
+              rows={2}
+              className={`resize-none`}
+              style={{ fontSize: "16px" }} // Prevent iOS zoom
+            />
+
+            <InputGroupAddon align="block-start" className="border-b">
+              <Stellar width={20} height={20} className="rounded-full" />
+              <FieldLabel
+                htmlFor="feedback"
+                className="text-neutral-500 dark:text-neutral-400 text-xs sm:text-sm"
+              >
+                Destination Address{" "}
+                <span className="text-red-500 dark:text-red-400">*</span>
+              </FieldLabel>
+              <div className="flex items-center gap-2 ml-auto">
+                <StatusIndicator />
+                {!isCheckingTrustline && trustlineExists && !error && (
+                  <p className="text-xs text-green-600 dark:text-green-400">
+                    {isContractAddress(value)
+                      ? "✓ Valid Stellar contract address"
+                      : `✓ ${currency} trustline verified`}
+                  </p>
+                )}
+              </div>
+            </InputGroupAddon>
+          </InputGroup>
+          {error && (
+            <FieldDescription>
+              <p className="text-xs text-red-500 dark:text-red-400 wrap-break-word">
+                {error}
+              </p>
+            </FieldDescription>
+          )}
+        </Field>
+      </FieldGroup>
+    </FieldSet>
   );
 }

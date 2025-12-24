@@ -1,7 +1,6 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import {
   arbitrum,
   base,
@@ -9,9 +8,30 @@ import {
   ethereum,
   polygon,
   rozoSolana,
+  rozoStellar,
   validateAddressForChain,
 } from "@rozoai/intent-common";
-import { useMemo } from "react";
+import {
+  Arbitrum,
+  Base,
+  BinanceSmartChain,
+  Ethereum,
+  Polygon,
+  Solana,
+  Stellar,
+} from "../icons/chains";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldSet,
+} from "../ui/field";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupTextarea,
+} from "../ui/input-group";
 
 interface DestinationAddressInputProps {
   value: string;
@@ -20,6 +40,20 @@ interface DestinationAddressInputProps {
   onErrorChange?: (error: string) => void;
   chainId?: number;
 }
+
+const chainToLogo = {
+  [arbitrum.chainId]: <Arbitrum width={20} height={20} />,
+  [base.chainId]: <Base width={20} height={20} />,
+  [bsc.chainId]: <BinanceSmartChain width={20} height={20} />,
+  [ethereum.chainId]: (
+    <Ethereum width={20} height={20} className="rounded-full" />
+  ),
+  [polygon.chainId]: <Polygon width={20} height={20} />,
+  [rozoSolana.chainId]: <Solana width={20} height={20} />,
+  [rozoStellar.chainId]: (
+    <Stellar width={20} height={20} className="rounded-full" />
+  ),
+};
 
 export function DestinationAddressInput({
   value,
@@ -55,43 +89,49 @@ export function DestinationAddressInput({
     }
   };
 
-  const placeholder = useMemo(() => {
-    const chainMap = {
-      [rozoSolana.chainId]: "Solana address...",
-      [base.chainId]: "Base address...",
-      [polygon.chainId]: "Polygon address...",
-      [ethereum.chainId]: "Ethereum address...",
-      [bsc.chainId]: "BSC address...",
-      [arbitrum.chainId]: "Arbitrum address...",
-    };
-    return chainMap[chainId as keyof typeof chainMap] || "Address...";
-  }, [chainId]);
-
   return (
-    <div className="space-y-2">
-      <Label
-        htmlFor="base-address"
-        className="text-neutral-600 dark:text-neutral-400"
-      >
-        Destination Address
-        <span className="text-red-500 dark:text-red-400">*</span>
-      </Label>
-      <Input
-        id="base-address"
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => handleChange(e.target.value)}
-        onBlur={handleBlur}
-        className={`h-10 sm:h-12 bg-white border-neutral-300 text-base text-neutral-900 placeholder:text-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-500 ${
-          error
-            ? "border-red-500 focus-visible:border-red-500 dark:border-red-500 dark:focus-visible:border-red-500"
-            : ""
-        }`}
-        style={{ fontSize: "16px" }} // Prevent iOS zoom
-      />
-      {error && (
-        <p className="text-xs text-red-500 dark:text-red-400">{error}</p>
-      )}
-    </div>
+    <FieldSet>
+      <FieldGroup>
+        <Field>
+          <InputGroup
+            className={cn(
+              "rounded-xl",
+              error
+                ? "border-red-500 focus-visible:border-red-500 dark:border-red-500 dark:focus-visible:border-red-500"
+                : ""
+            )}
+          >
+            <InputGroupTextarea
+              id="stellar-address"
+              placeholder="Enter your address"
+              value={value}
+              onChange={(e) => handleChange(e.target.value)}
+              onBlur={handleBlur}
+              rows={2}
+              className={`resize-none`}
+              style={{ fontSize: "16px" }} // Prevent iOS zoom
+            />
+
+            <InputGroupAddon align="block-start" className="border-b">
+              {chainToLogo[chainId as keyof typeof chainToLogo] || <></>}
+              <FieldLabel
+                htmlFor="feedback"
+                className="text-neutral-500 dark:text-neutral-400 text-xs sm:text-sm"
+              >
+                Destination Address{" "}
+                <span className="text-red-500 dark:text-red-400">*</span>
+              </FieldLabel>
+            </InputGroupAddon>
+          </InputGroup>
+          {error && (
+            <FieldDescription>
+              <p className="text-xs text-red-500 dark:text-red-400 wrap-break-word">
+                {error}
+              </p>
+            </FieldDescription>
+          )}
+        </Field>
+      </FieldGroup>
+    </FieldSet>
   );
 }
