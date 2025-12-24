@@ -224,6 +224,7 @@ export function BridgePayButton({
       feeType={intentConfig.feeType}
       receiverMemo={intentConfig.receiverMemo || ""}
       preferredSymbol={intentConfig.preferredSymbol}
+      paymentOptions={intentConfig.paymentOptions}
       onPaymentCompleted={() => {}}
       onPayoutCompleted={() => {}}
       connectedWalletOnly={intentConfig.connectedWalletOnly}
