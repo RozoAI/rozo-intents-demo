@@ -39,7 +39,7 @@ import {
   rozoSolana,
   rozoStellar,
   solana,
-  supportedTokens,
+  supportedPayoutTokens,
   Token,
   TokenSymbol,
 } from "@rozoai/intent-common";
@@ -64,7 +64,7 @@ interface TokenSelectorPopoverProps {
   isDestination?: boolean; // true for destination selector, false for source selector
 }
 
-const defaultListChains = Array.from(supportedTokens.keys())
+const defaultListChains = Array.from(supportedPayoutTokens.keys())
   .filter((chainId) => ![solana.chainId].includes(chainId))
   .map((chainId) => getChainById(chainId));
 
@@ -180,7 +180,7 @@ export function TokenSelectorPopover({
 
   // Use available tokens for the selected chain if provided, otherwise get from supportedTokens
   const displayTokens = selectedChain
-    ? availableTokens || supportedTokens.get(selectedChain.chainId) || []
+    ? availableTokens || supportedPayoutTokens.get(selectedChain.chainId) || []
     : [];
 
   // Detect mobile screen size

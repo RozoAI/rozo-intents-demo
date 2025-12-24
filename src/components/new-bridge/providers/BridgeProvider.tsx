@@ -9,6 +9,7 @@ import {
   rozoStellar,
   rozoStellarUSDC,
   solana,
+  supportedPayoutTokens,
   supportedTokens,
   Token,
   TokenSymbol,
@@ -98,7 +99,7 @@ export function BridgeProvider({
 
   // Get all supported chains
   const allChains = useMemo(() => {
-    return Array.from(supportedTokens.keys())
+    return Array.from(supportedPayoutTokens.keys())
       .map((chainId) => getChainById(chainId))
       .filter(
         (chain) => ![solana.chainId].includes(chain.chainId) && Boolean(chain)
@@ -126,7 +127,7 @@ export function BridgeProvider({
 
   const availableDestinationTokens = useMemo(() => {
     if (!state.destinationChain) return [];
-    return supportedTokens.get(state.destinationChain.chainId) || [];
+    return supportedPayoutTokens.get(state.destinationChain.chainId) || [];
   }, [state.destinationChain]);
 
   const isDestinationAddressValid = useMemo(() => {
@@ -208,7 +209,7 @@ export function BridgeProvider({
         } else if (prev.destinationChain) {
           // If destination chain is selected, update destination token based on source token
           const destinationChainTokens =
-            supportedTokens.get(prev.destinationChain.chainId) || [];
+            supportedPayoutTokens.get(prev.destinationChain.chainId) || [];
 
           if (token.symbol === TokenSymbol.EURC) {
             // If source is EURC, MUST select EURC in destination (or null if not available)
@@ -240,7 +241,7 @@ export function BridgeProvider({
   const setDestinationChain = useCallback(
     (chain: Chain) => {
       setState((prev) => {
-        const chainTokens = supportedTokens.get(chain.chainId) || [];
+        const chainTokens = supportedPayoutTokens.get(chain.chainId) || [];
         let newDestinationToken: Token | null = chainTokens[0] || null;
 
         // If source token is EURC, MUST select EURC in destination (or null if not available)

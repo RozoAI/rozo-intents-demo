@@ -86,7 +86,7 @@ export function BridgePayButton({
       paymentOptions.push(ExternalPaymentOptions.Ethereum);
     }
 
-    const intent = `Pay with ${bridge.sourceToken?.symbol} on ${bridge.sourceChain?.name} to ${bridge.destinationToken?.symbol} on ${bridge.destinationChain?.name}`;
+    const intent = `Bridge ${bridge.sourceToken?.symbol} on ${bridge.sourceChain?.name} to ${bridge.destinationToken?.symbol} on ${bridge.destinationChain?.name}`;
     return {
       appId,
       toChain: bridge.destinationChain.chainId,
@@ -224,7 +224,9 @@ export function BridgePayButton({
       feeType={intentConfig.feeType}
       receiverMemo={intentConfig.receiverMemo || ""}
       preferredSymbol={intentConfig.preferredSymbol}
+      preferredTokens={intentConfig.preferredTokens}
       paymentOptions={intentConfig.paymentOptions}
+      intent={intentConfig.intent}
       onPaymentCompleted={() => {}}
       onPayoutCompleted={() => {}}
       connectedWalletOnly={intentConfig.connectedWalletOnly}
