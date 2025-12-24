@@ -1,5 +1,6 @@
 "use client";
 
+import { useStellarWallet } from "@/contexts/StellarWalletContext";
 import {
   base,
   Chain,
@@ -76,6 +77,8 @@ export function BridgeProvider({
   defaultSourceChain,
   defaultDestinationChain,
 }: BridgeProviderProps) {
+  const { stellarAddress, stellarConnected } = useStellarWallet();
+
   const [state, setState] = useState<BridgeState>(() => {
     // Default to USDC Base -> USDC Stellar
     const baseChain = defaultSourceChain || getChainById(base.chainId);
@@ -103,7 +106,7 @@ export function BridgeProvider({
       sourceToken: defaultSourceToken,
       destinationChain: stellarChain,
       destinationToken: defaultDestinationToken,
-      destinationAddress: null,
+      destinationAddress: stellarConnected ? stellarAddress : null,
     };
   });
 
@@ -141,13 +144,17 @@ export function BridgeProvider({
   }, [state.destinationChain]);
 
   const isDestinationAddressValid = useMemo(() => {
-    if (!state.destinationAddress || !state.destinationChain?.chainId)
-      return false;
+    try {
+      if (!state.destinationAddress || !state.destinationChain?.chainId)
+        return false;
 
-    return validateAddressForChain(
-      state.destinationChain?.chainId,
-      state.destinationAddress
-    );
+      return validateAddressForChain(
+        state.destinationChain?.chainId,
+        state.destinationAddress
+      );
+    } catch {
+      return false;
+    }
   }, [state.destinationAddress, state.destinationChain?.chainId]);
 
   // Set source chain with automatic token selection
@@ -185,30 +192,59 @@ export function BridgeProvider({
   }, []);
 
   // Set destination chain with automatic token selection
-  const setDestinationChain = useCallback((chain: Chain) => {
-    setState((prev) => {
-      const chainTokens = supportedTokens.get(chain.chainId) || [];
-      const defaultToken = chainTokens[0] || null;
+  const setDestinationChain = useCallback(
+    (chain: Chain) => {
+      setState((prev) => {
+        const chainTokens = supportedTokens.get(chain.chainId) || [];
+        const defaultToken = chainTokens[0] || null;
 
-      // Clear incompatible source if needed
-      let newSourceChain = prev.sourceChain;
-      let newSourceToken = prev.sourceToken;
+        // Clear incompatible source if needed
+        let newSourceChain = prev.sourceChain;
+        let newSourceToken = prev.sourceToken;
 
-      // If source is the same as destination, clear it
-      if (prev.sourceChain?.chainId === chain.chainId) {
-        newSourceChain = null;
-        newSourceToken = null;
-      }
+        // If source is the same as destination, clear it
+        if (prev.sourceChain?.chainId === chain.chainId) {
+          newSourceChain = null;
+          newSourceToken = null;
+        }
 
-      return {
-        ...prev,
-        destinationChain: chain,
-        destinationToken: defaultToken,
-        sourceChain: newSourceChain,
-        sourceToken: newSourceToken,
-      };
-    });
-  }, []);
+        // Handle destination address based on new chain
+        let newDestinationAddress = prev.destinationAddress;
+        if (chain.chainId === rozoStellar.chainId) {
+          // If switching to Stellar and connected, auto-fill with Stellar address
+          if (stellarConnected && stellarAddress) {
+            newDestinationAddress = stellarAddress;
+          }
+        } else {
+          // If switching to non-Stellar, check if current address is valid
+          // If not valid, clear it
+          if (prev.destinationAddress) {
+            try {
+              const isValid = validateAddressForChain(
+                chain.chainId,
+                prev.destinationAddress
+              );
+              if (!isValid) {
+                newDestinationAddress = null;
+              }
+            } catch {
+              newDestinationAddress = null;
+            }
+          }
+        }
+
+        return {
+          ...prev,
+          destinationChain: chain,
+          destinationToken: defaultToken,
+          sourceChain: newSourceChain,
+          sourceToken: newSourceToken,
+          destinationAddress: newDestinationAddress,
+        };
+      });
+    },
+    [stellarConnected, stellarAddress]
+  );
 
   // Set destination token
   const setDestinationToken = useCallback((token: Token) => {
@@ -242,14 +278,46 @@ export function BridgeProvider({
 
   // Swap source and destination
   const swapSourceAndDestination = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      sourceChain: prev.destinationChain,
-      sourceToken: prev.destinationToken,
-      destinationChain: prev.sourceChain,
-      destinationToken: prev.sourceToken,
-    }));
-  }, []);
+    setState((prev) => {
+      const newDestinationChain = prev.sourceChain;
+      let newDestinationAddress = prev.destinationAddress;
+
+      // Handle destination address based on new destination chain after swap
+      if (newDestinationChain) {
+        if (newDestinationChain.chainId === rozoStellar.chainId) {
+          // If new destination is Stellar and connected, auto-fill with Stellar address
+          if (stellarConnected && stellarAddress) {
+            newDestinationAddress = stellarAddress;
+          }
+        } else {
+          // If new destination is NOT Stellar, check if current address is valid
+          // If not valid, clear it
+          if (prev.destinationAddress) {
+            try {
+              const isValid = validateAddressForChain(
+                newDestinationChain.chainId,
+                prev.destinationAddress
+              );
+              if (!isValid) {
+                newDestinationAddress = null;
+              }
+            } catch {
+              newDestinationAddress = null;
+            }
+          }
+        }
+      }
+
+      return {
+        ...prev,
+        sourceChain: prev.destinationChain,
+        sourceToken: prev.destinationToken,
+        destinationChain: newDestinationChain,
+        destinationToken: prev.sourceToken,
+        destinationAddress: newDestinationAddress,
+      };
+    });
+  }, [stellarConnected, stellarAddress]);
 
   // Set destination address
   const setDestinationAddress = useCallback((address: string) => {

@@ -144,6 +144,30 @@ export function BridgePayButton({
     );
   }
 
+  if (parseFloat(amount) <= 0) {
+    return (
+      <Button
+        size="lg"
+        className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl cursor-pointer"
+        disabled
+      >
+        Enter an amount to continue
+      </Button>
+    );
+  }
+
+  if (bridge.destinationAddress === null) {
+    return (
+      <Button
+        size="lg"
+        className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl cursor-pointer"
+        disabled
+      >
+        Enter a destination address to continue
+      </Button>
+    );
+  }
+
   if (intentConfig === null || intentConfig.toAddress === "") {
     return (
       <Button

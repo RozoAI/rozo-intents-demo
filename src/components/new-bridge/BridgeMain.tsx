@@ -4,7 +4,7 @@ import { useStellarWallet } from "@/contexts/StellarWalletContext";
 import { GetFeeError, useGetFee } from "@/hooks/use-get-fee";
 import { formatNumber } from "@/lib/formatNumber";
 import { DEFAULT_INTENT_PAY_CONFIG } from "@/lib/intentPay";
-import { base, FeeType, TokenSymbol } from "@rozoai/intent-common";
+import { base, FeeType, rozoStellar, TokenSymbol } from "@rozoai/intent-common";
 import { AlertTriangle, Clock, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -18,11 +18,10 @@ import { HistoryDialog } from "./HistoryDialog";
 import { useManualStellarAddress } from "./hooks/useManualStellarAddress";
 import { MemoInput } from "./MemoInput";
 import { StellarAddressInput } from "./StellarAddressInput";
-import { StellarBalanceCard } from "./StellarBalanceCard";
 import { TokenAmountInput } from "./TokenAmountInput";
 import { getStellarHistoryForWallet } from "./utils/history";
 
-import { cn } from "@/lib/utils";
+import { cn, formatAddress } from "@/lib/utils";
 import { BridgePayButton } from "./BridgePayButton";
 import { useBridge } from "./providers/BridgeProvider";
 import { useDestinationSelector, useSourceSelector } from "./providers/hooks";
@@ -34,6 +33,10 @@ export function BridgeMain() {
     isDestinationAddressValid,
     setDestinationAddress,
     destinationAddress,
+    destinationChain,
+    destinationToken,
+    sourceChain,
+    sourceToken,
   } = useBridge();
   const sourceSelector = useSourceSelector();
   const destinationSelector = useDestinationSelector();
@@ -57,12 +60,24 @@ export function BridgeMain() {
   const [destinationChainId, setDestinationChainId] = useState<number>(
     base.chainId
   );
+  // State for destination address popover
+  const [destinationAddressPopoverOpen, setDestinationAddressPopoverOpen] =
+    useState(false);
+
+  // Sync destinationChainId with bridge's destinationChain
+  useEffect(() => {
+    if (destinationChain?.chainId) {
+      setDestinationChainId(destinationChain.chainId);
+    }
+  }, [destinationChain?.chainId]);
 
   const {
     currency: stellarCurrency,
     stellarConnected,
     stellarAddress,
     trustlineStatus,
+    usdcTrustline,
+    eurcTrustline,
     xlmBalance,
     createTrustline,
   } = useStellarWallet();
@@ -196,6 +211,31 @@ export function BridgeMain() {
     return null;
   }, [fromAmount, toAmount, feeErrorData, feeType]);
 
+  const currentBalance = useMemo(() => {
+    if (stellarConnected) {
+      if (sourceChain?.chainId === rozoStellar.chainId) {
+        return sourceToken?.symbol === TokenSymbol.USDC
+          ? parseFloat(usdcTrustline.balance)
+          : parseFloat(eurcTrustline.balance);
+      }
+      if (destinationChain?.chainId === rozoStellar.chainId) {
+        return destinationToken?.symbol === TokenSymbol.USDC
+          ? parseFloat(usdcTrustline.balance)
+          : parseFloat(eurcTrustline.balance);
+      }
+      return null;
+    }
+    return null;
+  }, [
+    stellarConnected,
+    sourceChain?.chainId,
+    sourceToken?.symbol,
+    destinationChain?.chainId,
+    destinationToken?.symbol,
+    usdcTrustline.balance,
+    eurcTrustline.balance,
+  ]);
+
   const handleSwitch = () => {
     setIsSwitched(!isSwitched);
     setBalanceError("");
@@ -258,47 +298,107 @@ export function BridgeMain() {
         manualStellarAddress.reset();
       }
 
-      console.log("isDestinationAddressValid", isDestinationAddressValid);
-      console.log("stellarAddress", stellarAddress);
+      // Only set Stellar address if destination chain is Stellar
+      if (destinationChain?.chainId === rozoStellar.chainId) {
+        setDestinationAddress(stellarAddress);
 
-      setDestinationAddress(stellarAddress);
-
-      if (!isDestinationAddressValid) {
-        setAddressError("Invalid address");
-      } else {
-        setAddressError("");
+        if (!isDestinationAddressValid) {
+          setAddressError("Invalid address");
+        } else {
+          setAddressError("");
+        }
       }
     } else {
-      setDestinationAddress("");
+      // Only clear address if destination chain is Stellar
+      if (destinationChain?.chainId === rozoStellar.chainId) {
+        setDestinationAddress("");
+        setAddressError("");
+      }
+    }
+  }, [
+    stellarConnected,
+    destinationChain?.chainId,
+    stellarAddress,
+    isDestinationAddressValid,
+  ]);
+
+  // Auto-set destination address to Stellar address when destination chain changes to Stellar
+  useEffect(() => {
+    if (
+      destinationChain?.chainId === rozoStellar.chainId &&
+      stellarConnected &&
+      stellarAddress &&
+      (!destinationAddress || !isDestinationAddressValid)
+    ) {
+      setDestinationAddress(stellarAddress);
       setAddressError("");
     }
-  }, [stellarConnected]);
+  }, [
+    destinationChain?.chainId,
+    stellarConnected,
+    stellarAddress,
+    destinationAddress,
+    isDestinationAddressValid,
+    setDestinationAddress,
+  ]);
+
+  // Close popover when address becomes valid
+  useEffect(() => {
+    if (
+      destinationAddressPopoverOpen &&
+      destinationAddress &&
+      isDestinationAddressValid &&
+      !addressError
+    ) {
+      setDestinationAddressPopoverOpen(false);
+    }
+  }, [
+    destinationAddressPopoverOpen,
+    destinationAddress,
+    isDestinationAddressValid,
+    addressError,
+  ]);
 
   // Validate balance when amount changes and user is bridging from Stellar
   useEffect(() => {
-    if (isSwitched && stellarConnected && fromAmount && fromAmount !== "") {
-      const amountNum = parseFloat(fromAmount);
-      const balanceNum = parseFloat(trustlineStatus.balance);
+    if (stellarConnected && fromAmount && fromAmount !== "") {
+      if (sourceChain?.chainId === rozoStellar.chainId) {
+        const amountNum = parseFloat(fromAmount);
 
-      if (!isNaN(amountNum) && !isNaN(balanceNum)) {
-        if (amountNum > balanceNum) {
-          setBalanceError(
-            `Insufficient balance. You have ${balanceNum.toLocaleString(
-              "en-US",
-              {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              }
-            )} USDC`
-          );
-        } else {
-          setBalanceError("");
+        const usdcBalance = usdcTrustline.balance;
+        const eurcBalance = eurcTrustline.balance;
+
+        const balanceNum =
+          sourceToken?.symbol === TokenSymbol.USDC
+            ? parseFloat(usdcBalance)
+            : parseFloat(eurcBalance);
+
+        if (!isNaN(amountNum) && !isNaN(balanceNum)) {
+          if (amountNum > balanceNum) {
+            setBalanceError(
+              `Insufficient balance. You have ${balanceNum.toLocaleString(
+                "en-US",
+                {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                }
+              )} ${sourceToken?.symbol}`
+            );
+          } else {
+            setBalanceError("");
+          }
         }
       }
     } else {
       setBalanceError("");
     }
-  }, [fromAmount, isSwitched, stellarConnected, trustlineStatus.balance]);
+  }, [
+    fromAmount,
+    stellarConnected,
+    trustlineStatus.balance,
+    sourceToken,
+    sourceChain,
+  ]);
 
   // Sync the calculated amount to the opposite field
   useEffect(() => {
@@ -343,30 +443,51 @@ export function BridgeMain() {
         </div>
 
         {/* Stellar USDC Balance */}
-        <StellarBalanceCard currency={currency} />
+        {/* <StellarBalanceCard currency={currency} /> */}
 
         {/* From Section */}
         <BridgeCard>
-          <div className="flex-1">
-            <TokenAmountInput
-              currency={currency}
-              label="From"
-              amount={fromAmount}
-              setAmount={(value) => {
-                setFromAmount(value);
-                setFeeType(FeeType.ExactIn);
-              }}
+          <TokenAmountInput
+            currency={currency}
+            labelContent={
+              <span className="text-neutral-600 dark:text-neutral-400">
+                From{""}
+                {sourceChain?.chainId === rozoStellar.chainId &&
+                stellarConnected &&
+                stellarAddress
+                  ? `: ${formatAddress(stellarAddress)}`
+                  : ""}
+              </span>
+            }
+            amount={fromAmount}
+            setAmount={(value) => {
+              setFromAmount(value);
+              setFeeType(FeeType.ExactIn);
+            }}
+          />
+
+          <div className="flex flex-col justify-between items-end h-full">
+            <TokenSelectorTrigger
+              selector={sourceSelector}
+              modalTitle="Select Source Token"
             />
-            {balanceError && (
-              <div className="text-xs text-red-500 dark:text-red-400 mt-1">
+            {balanceError ? (
+              <div className="text-xs text-red-500 dark:text-red-400 mt-auto">
                 {balanceError}
               </div>
-            )}
+            ) : currentBalance &&
+              currentBalance > 0 &&
+              sourceChain?.chainId === rozoStellar.chainId ? (
+              <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-auto">
+                Balance:{" "}
+                {currentBalance.toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{" "}
+                {sourceToken?.symbol}
+              </div>
+            ) : null}
           </div>
-          <TokenSelectorTrigger
-            selector={sourceSelector}
-            modalTitle="Select Source Token"
-          />
         </BridgeCard>
 
         {/* Swap Button */}
@@ -376,17 +497,40 @@ export function BridgeMain() {
         <BridgeCard>
           <TokenAmountInput
             currency={currency}
-            label="To"
+            labelContent={
+              <span className="text-neutral-600 dark:text-neutral-400">
+                To{""}
+                {destinationAddress && isDestinationAddressValid
+                  ? `: ${formatAddress(destinationAddress)}`
+                  : ""}
+              </span>
+            }
             amount={toAmount}
             setAmount={(value) => {
               setToAmount(value);
               setFeeType(FeeType.ExactOut);
             }}
           />
-          <TokenSelectorTrigger
-            selector={destinationSelector}
-            modalTitle="Select Destination Token"
-          />
+
+          <div className="flex flex-col justify-between items-end h-full">
+            <TokenSelectorTrigger
+              selector={destinationSelector}
+              modalTitle="Select Destination Token"
+            />
+
+            {currentBalance &&
+              currentBalance > 0 &&
+              destinationChain?.chainId === rozoStellar.chainId && (
+                <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-auto">
+                  Balance:{" "}
+                  {currentBalance.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{" "}
+                  {sourceToken?.symbol}
+                </div>
+              )}
+          </div>
         </BridgeCard>
 
         {!limitError && (
@@ -408,15 +552,9 @@ export function BridgeMain() {
           </div>
         )}
 
-        {/* Chain Selector & Address Input - Only show when withdrawing (Stellar to multi-chain) */}
-        {isSwitched && (
-          <div
-            className={cn(
-              "mt-3",
-              feeData &&
-                " border-t border-neutral-200 dark:border-neutral-700 pt-3"
-            )}
-          >
+        {/* Chain Selector & Address Input - Show when address is invalid for non-Stellar chains or when switched */}
+        {destinationChain?.chainId !== rozoStellar.chainId && (
+          <div className={cn("mt-3")}>
             <DestinationAddressInput
               value={destinationAddress || ""}
               onChange={setDestinationAddress}
@@ -428,97 +566,90 @@ export function BridgeMain() {
         )}
 
         {/* Deposit Configuration - Only show when depositing (multi-chain to Stellar) */}
-        {!isSwitched && (
-          <div className="mt-3 border-t border-neutral-200 dark:border-neutral-700 pt-3">
-            {stellarConnected ? (
-              // Show trustline warning if wallet is connected
-              <>
-                {!hideTrustlineWarning && hasEnoughXLM ? (
-                  <div className="p-4 rounded-xl border border-yellow-500/20 bg-yellow-50 dark:bg-yellow-500/10">
-                    <div className="flex items-start gap-3">
-                      <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
-                      <div className="space-y-3 flex-1">
-                        <div>
-                          <p className="font-medium text-yellow-900 dark:text-yellow-100 text-sm">
-                            {stellarCurrency} Trustline Required
-                          </p>
-                          <p className="text-xs text-yellow-700 dark:text-yellow-200/80 mt-1">
-                            Your Stellar wallet needs to establish a trustline
-                            for {stellarCurrency} to receive deposits. This is a
-                            one-time setup.
-                          </p>
-                        </div>
-                        <Button
-                          onClick={handleCreateTrustline}
-                          disabled={
-                            trustlineStatus.checking || trustlineStatus.creating
-                          }
-                          size="sm"
-                          className="bg-yellow-600 hover:bg-yellow-700 text-white h-9"
-                        >
-                          {trustlineStatus.creating ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Adding...
-                            </>
-                          ) : (
-                            `Add ${stellarCurrency} Trustline`
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ) : !hideTrustlineWarning && !hasEnoughXLM ? (
-                  <div className="p-4 rounded-xl border border-orange-500/20 bg-orange-50 dark:bg-orange-500/10">
-                    <div className="flex items-start gap-3">
-                      <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 mt-0.5 shrink-0" />
-                      <div className="space-y-1">
-                        <p className="font-medium text-orange-900 dark:text-orange-100 text-sm">
-                          Insufficient XLM Balance
+        <div className="mt-3">
+          {stellarConnected ? (
+            // Show trustline warning if wallet is connected
+            <>
+              {!hideTrustlineWarning && hasEnoughXLM ? (
+                <div className="p-4 rounded-xl border border-yellow-500/20 bg-yellow-50 dark:bg-yellow-500/10">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
+                    <div className="space-y-3 flex-1">
+                      <div>
+                        <p className="font-medium text-yellow-900 dark:text-yellow-100 text-sm">
+                          {stellarCurrency} Trustline Required
                         </p>
-                        <p className="text-xs text-orange-700 dark:text-orange-200/80">
-                          You need at least 1.5 XLM to create a{" "}
-                          {stellarCurrency} trustline. Current balance:{" "}
-                          {xlmBalance.balance} XLM
+                        <p className="text-xs text-yellow-700 dark:text-yellow-200/80 mt-1">
+                          Your Stellar wallet needs to establish a trustline for{" "}
+                          {stellarCurrency} to receive deposits. This is a
+                          one-time setup.
                         </p>
                       </div>
+                      <Button
+                        onClick={handleCreateTrustline}
+                        disabled={
+                          trustlineStatus.checking || trustlineStatus.creating
+                        }
+                        size="sm"
+                        className="bg-yellow-600 hover:bg-yellow-700 text-white h-9"
+                      >
+                        {trustlineStatus.creating ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Adding...
+                          </>
+                        ) : (
+                          `Add ${stellarCurrency} Trustline`
+                        )}
+                      </Button>
                     </div>
                   </div>
-                ) : (
-                  <BridgePayButton
-                    appId={appId}
-                    amount={fromAmount || "0"}
-                    feeType={feeType as FeeType}
-                  />
-                )}
-              </>
-            ) : (
-              // Show manual Stellar address input if wallet is not connected
-              <>
-                <StellarAddressInput
-                  currency={stellarCurrency}
-                  value={manualStellarAddress.address}
-                  onChange={manualStellarAddress.setAddress}
-                  onTrustlineStatusChange={
-                    manualStellarAddress.setTrustlineStatus
-                  }
-                  error={manualStellarAddress.addressError}
-                  onErrorChange={manualStellarAddress.setAddressError}
+                </div>
+              ) : !hideTrustlineWarning && !hasEnoughXLM ? (
+                <div className="p-4 rounded-xl border border-orange-500/20 bg-orange-50 dark:bg-orange-500/10">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 mt-0.5 shrink-0" />
+                    <div className="space-y-1">
+                      <p className="font-medium text-orange-900 dark:text-orange-100 text-sm">
+                        Insufficient XLM Balance
+                      </p>
+                      <p className="text-xs text-orange-700 dark:text-orange-200/80">
+                        You need at least 1.5 XLM to create a {stellarCurrency}{" "}
+                        trustline. Current balance: {xlmBalance.balance} XLM
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <BridgePayButton
+                  appId={appId}
+                  amount={fromAmount || "0"}
+                  feeType={feeType as FeeType}
                 />
-                {/* Show memo input only if address is valid and trustline exists */}
-                {manualStellarAddress.address &&
-                  manualStellarAddress.trustlineExists &&
-                  !manualStellarAddress.addressError && (
-                    <MemoInput
-                      value={memo}
-                      onChange={setMemo}
-                      className="mt-4"
-                    />
-                  )}
-              </>
-            )}
-          </div>
-        )}
+              )}
+            </>
+          ) : (
+            // Show manual Stellar address input if wallet is not connected
+            <>
+              <StellarAddressInput
+                currency={stellarCurrency}
+                value={manualStellarAddress.address}
+                onChange={manualStellarAddress.setAddress}
+                onTrustlineStatusChange={
+                  manualStellarAddress.setTrustlineStatus
+                }
+                error={manualStellarAddress.addressError}
+                onErrorChange={manualStellarAddress.setAddressError}
+              />
+              {/* Show memo input only if address is valid and trustline exists */}
+              {manualStellarAddress.address &&
+                manualStellarAddress.trustlineExists &&
+                !manualStellarAddress.addressError && (
+                  <MemoInput value={memo} onChange={setMemo} className="mt-4" />
+                )}
+            </>
+          )}
+        </div>
 
         {/* Amount Limit Warning */}
         {limitError && (

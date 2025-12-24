@@ -3,7 +3,9 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  arbitrum,
   base,
+  bsc,
   ethereum,
   polygon,
   rozoSolana,
@@ -59,6 +61,8 @@ export function DestinationAddressInput({
       [base.chainId]: "Base address...",
       [polygon.chainId]: "Polygon address...",
       [ethereum.chainId]: "Ethereum address...",
+      [bsc.chainId]: "BSC address...",
+      [arbitrum.chainId]: "Arbitrum address...",
     };
     return chainMap[chainId as keyof typeof chainMap] || "Address...";
   }, [chainId]);
@@ -83,7 +87,7 @@ export function DestinationAddressInput({
             ? "border-red-500 focus-visible:border-red-500 dark:border-red-500 dark:focus-visible:border-red-500"
             : ""
         }`}
-        style={{ fontSize: '16px' }} // Prevent iOS zoom
+        style={{ fontSize: "16px" }} // Prevent iOS zoom
       />
       {error && (
         <p className="text-xs text-red-500 dark:text-red-400">{error}</p>

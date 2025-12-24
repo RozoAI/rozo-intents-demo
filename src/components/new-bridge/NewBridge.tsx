@@ -34,8 +34,8 @@ import { TokenAmountInput } from "./TokenAmountInput";
 import { getStellarHistoryForWallet } from "./utils/history";
 
 import { cn } from "@/lib/utils";
-import { TokenSelector } from "./TokenSelector";
 import { useBridge } from "./providers/BridgeProvider";
+import { TokenSelector } from "./TokenSelector";
 
 export function NewBridge() {
   const { swapSourceAndDestination } = useBridge();
@@ -328,7 +328,7 @@ export function NewBridge() {
   const handleSwitch = () => {
     // Use BridgeProvider's swap functionality
     swapSourceAndDestination();
-    
+
     // Toggle local state
     setIsSwitched(!isSwitched);
     setBalanceError("");
@@ -337,7 +337,7 @@ export function NewBridge() {
     setMemo("");
     setDestinationChainId(base.chainId);
     manualStellarAddress.reset();
-    
+
     // Clear amounts
     setFromAmount("");
     setToAmount("");

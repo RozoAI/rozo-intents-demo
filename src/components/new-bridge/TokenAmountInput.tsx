@@ -5,7 +5,8 @@ import { TokenSymbol } from "@rozoai/intent-common";
 import { useMemo } from "react";
 
 interface TokenAmountInputProps {
-  label: string;
+  label?: string;
+  labelContent?: React.ReactNode;
   amount: string | undefined;
   setAmount?: (v: string | undefined) => void;
   readonly?: boolean;
@@ -14,6 +15,7 @@ interface TokenAmountInputProps {
 
 export function TokenAmountInput({
   label,
+  labelContent,
   amount,
   setAmount,
   readonly = false,
@@ -56,9 +58,14 @@ export function TokenAmountInput({
 
   return (
     <div className="flex-1">
-      <label className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 mb-1.5 sm:mb-2 block">
-        {label}
-      </label>
+      <div className="flex items-start gap-2 text-xs sm:text-sm">
+        {label && (
+          <label className="text-neutral-600 dark:text-neutral-400">
+            {label}
+          </label>
+        )}
+        {labelContent}
+      </div>
       <input
         type="text"
         value={amount !== undefined ? formatNumber(amount) : ""}
