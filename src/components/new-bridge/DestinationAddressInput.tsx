@@ -95,7 +95,7 @@ export function DestinationAddressInput({
         <Field>
           <InputGroup
             className={cn(
-              "rounded-xl",
+              "rounded-xl bg-background",
               error
                 ? "border-red-500 focus-visible:border-red-500 dark:border-red-500 dark:focus-visible:border-red-500"
                 : ""
