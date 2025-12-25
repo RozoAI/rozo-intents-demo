@@ -3,6 +3,7 @@ import {
   ExternalPaymentOptions,
   ExternalPaymentOptionsString,
   FeeType,
+  generateIntentTitle,
   RozoPayUserMetadata,
   rozoSolana,
   rozoStellar,
@@ -86,7 +87,12 @@ export function BridgePayButton({
       paymentOptions.push(ExternalPaymentOptions.Ethereum);
     }
 
-    const intent = `Bridge ${bridge.sourceToken?.symbol} on ${bridge.sourceChain?.name} to ${bridge.destinationToken?.symbol} on ${bridge.destinationChain?.name}`;
+    const intent = generateIntentTitle({
+      toChainId: bridge.destinationChain.chainId,
+      toTokenAddress: bridge.destinationToken.token,
+      preferredChainId: bridge.sourceChain.chainId,
+      preferredTokenAddress: bridge.sourceToken.token,
+    });
     return {
       appId,
       toChain: bridge.destinationChain.chainId,
