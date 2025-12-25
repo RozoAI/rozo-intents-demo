@@ -14,6 +14,21 @@ export interface AnalyticsData {
     total_volume_usdc: number;
     avg_seconds: number;
   };
+  last_50_txs: {
+    start_time: string;
+    end_time: string;
+    total_payments: number;
+    total_volume_usdc: number;
+    green_count: number;
+    yellow_count: number;
+    red_count: number;
+    avg_seconds: number;
+  };
+  txs: {
+    timestamp: string;
+    duration: number;
+    color: "green" | "yellow" | "red";
+  }[];
 }
 
 const fetchAnalytics = async (): Promise<AnalyticsData> => {

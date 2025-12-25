@@ -80,6 +80,7 @@ export function BridgeMain() {
     currency: stellarCurrency,
     stellarConnected,
     stellarAddress,
+    stellarError,
     trustlineStatus,
     usdcTrustline,
     eurcTrustline,
@@ -608,7 +609,18 @@ export function BridgeMain() {
         {stellarConnected ? (
           // Show trustline warning if wallet is connected
           <div className="mt-3">
-            {!hideTrustlineWarning && hasEnoughXLM ? (
+            {stellarError ? (
+              <div className="p-4 rounded-xl border border-red-500/20 bg-red-50 dark:bg-red-500/10">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
+                  <div className="space-y-1">
+                    <p className="font-medium text-red-900 dark:text-red-100 text-sm">
+                      {stellarError}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : !hideTrustlineWarning && hasEnoughXLM ? (
               <div className="p-4 rounded-xl border border-yellow-500/20 bg-yellow-50 dark:bg-yellow-500/10">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />

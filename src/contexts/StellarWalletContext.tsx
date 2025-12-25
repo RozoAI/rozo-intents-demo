@@ -67,6 +67,10 @@ interface StellarWalletContextType {
   xlmBalance: XlmBalance;
   checkXlmBalance: () => Promise<void>;
   selectedWallet: ISupportedWallet | null;
+
+  // Error management
+  stellarError: string | null;
+  setStellarError: (error: string | null) => void;
 }
 
 const StellarWalletContext = createContext<
@@ -88,6 +92,7 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
   const currency = (searchParams.get("currency") as "USDC" | "EURC") ?? "USDC";
 
+  const [stellarError, setStellarError] = useState<string | null>(null);
   const [stellarAddress, setStellarAddress] = useState("");
   const [stellarConnected, setStellarConnected] = useState(false);
   const [stellarConnecting, setStellarConnecting] = useState(false);
@@ -277,6 +282,9 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
       }));
     } catch (error) {
       console.error("Failed to check balances:", error);
+      setStellarError(
+        error instanceof Error ? error.message : "Failed to check balances"
+      );
       const errorState = { checking: false, exists: false, balance: "0" };
       setTrustlineStatus((prev) => ({ ...prev, ...errorState }));
       setUsdcTrustline((prev) => ({ ...prev, ...errorState }));
@@ -402,6 +410,9 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
       }));
     } catch (error) {
       console.error("Failed to check trustlines:", error);
+      setStellarError(
+        error instanceof Error ? error.message : "Failed to check trustlines"
+      );
       const errorState = { checking: false, exists: false, balance: "0" };
       setTrustlineStatus((prev) => ({ ...prev, ...errorState }));
       setUsdcTrustline((prev) => ({ ...prev, ...errorState }));
@@ -469,6 +480,9 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
       await checkTrustline();
     } catch (error) {
       console.error("Failed to create trustline:", error);
+      setStellarError(
+        error instanceof Error ? error.message : "Failed to create trustline"
+      );
       toast.error(
         `Failed to create ${finalCurrency} trustline. Please try again.`
       );
@@ -713,6 +727,8 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
         xlmBalance,
         checkXlmBalance,
         selectedWallet,
+        stellarError,
+        setStellarError,
       }}
     >
       {children}
