@@ -77,13 +77,15 @@ const StellarWalletContext = createContext<
   StellarWalletContextType | undefined
 >(undefined);
 
-const STORAGE_KEY = "stellar_wallet_connection";
+const STORAGE_KEY = "rozo-stellar-wallet";
 
 interface StoredWalletData {
-  address: string;
-  walletId: string;
-  walletName: string;
-  timestamp: number;
+  publicKey: string; // The public key of the wallet (address)
+  walletId: string; // e.g. "freighter"
+  walletName: string; // e.g. "Freighter"
+  walletIcon?: string; // Optional: the wallet's icon URL
+  ckStoreKey?: string; // Optional: cross-key store key, if any
+  timestamp: string; // Timestamp in ISO format, e.g. "2025-12-26T16:16:22.176Z"
 }
 
 export function StellarWalletProvider({ children }: { children: ReactNode }) {
@@ -138,11 +140,12 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) return null;
 
-      const data = JSON.parse(stored) as StoredWalletData;
+      const wallets = JSON.parse(stored) as StoredWalletData[];
+      const data = wallets[wallets.length - 1];
 
       // Check if data is not too old (24 hours)
       const MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-      if (Date.now() - data.timestamp > MAX_AGE) {
+      if (Date.now() - new Date(data.timestamp).getTime() > MAX_AGE) {
         localStorage.removeItem(STORAGE_KEY);
         return null;
       }
@@ -156,23 +159,23 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
   };
 
   // Save wallet data to localStorage
-  const saveWalletData = (
-    address: string,
-    walletId: string,
-    walletName: string
-  ) => {
-    try {
-      const data: StoredWalletData = {
-        address,
-        walletId,
-        walletName,
-        timestamp: Date.now(),
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch (error) {
-      console.error("Error saving wallet data:", error);
-    }
-  };
+  // const saveWalletData = (
+  //   address: string,
+  //   walletId: string,
+  //   walletName: string
+  // ) => {
+  //   try {
+  //     const data: StoredWalletData = {
+  //       address,
+  //       walletId,
+  //       walletName,
+  //       timestamp: Date.now(),
+  //     };
+  //     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  //   } catch (error) {
+  //     console.error("Error saving wallet data:", error);
+  //   }
+  // };
 
   // Clear stored wallet data
   const clearStoredWallet = () => {
@@ -563,7 +566,7 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
             ? publicKey
             : (publicKey as { address?: string }).address;
 
-        if (address && address === storedData.address) {
+        if (address && address === storedData.publicKey) {
           setStellarAddress(address);
           setStellarConnected(true);
           setStellarWalletName(storedData.walletName);
@@ -649,7 +652,7 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
             setStellarAddress(address);
             setStellarConnected(true);
             // Save wallet data for auto-reconnect
-            saveWalletData(address, option.id, option.name);
+            // saveWalletData(address, option.id, option.name);
             setStellarWalletName(option.name);
             toast.success(`Connected to ${option.name}`);
           } catch (error: unknown) {

@@ -23,6 +23,12 @@ import {
   useMemo,
   useState,
 } from "react";
+import {
+  BridgeHistoryItem,
+  clearBridgeHistoryForWallet,
+  getBridgeHistoryForWallet,
+  saveBridgeHistory,
+} from "../utils/bridgeHistory";
 
 export interface BridgeState {
   // Source chain/token (where funds come from)
@@ -57,6 +63,19 @@ export interface BridgeContextType extends BridgeState {
   availableDestinationChains: Chain[];
   availableSourceTokens: Token[];
   availableDestinationTokens: Token[];
+
+  // History management
+  saveTransaction: (params: {
+    walletAddress: string;
+    paymentId: string;
+    rozoPaymentId?: string;
+    amount: string;
+    sourceTxHash?: string;
+    destinationTxHash?: string;
+    status?: "completed" | "pending" | "failed";
+  }) => void;
+  getTransactionHistory: (walletAddress: string) => BridgeHistoryItem[];
+  clearTransactionHistory: (walletAddress: string) => void;
 }
 
 const BridgeContext = createContext<BridgeContextType | null>(null);
@@ -413,6 +432,73 @@ export function BridgeProvider({
     }));
   }, []);
 
+  // Save bridge transaction to history
+  const saveTransaction = useCallback(
+    (params: {
+      walletAddress: string;
+      paymentId: string;
+      rozoPaymentId?: string;
+      amount: string;
+      sourceTxHash?: string;
+      destinationTxHash?: string;
+      status?: "completed" | "pending" | "failed";
+    }) => {
+      if (
+        !state.sourceChain ||
+        !state.sourceToken ||
+        !state.destinationChain ||
+        !state.destinationToken ||
+        !state.destinationAddress
+      ) {
+        console.warn("Cannot save transaction: missing bridge state");
+        return;
+      }
+
+      try {
+        saveBridgeHistory({
+          walletAddress: params.walletAddress,
+          paymentId: params.paymentId,
+          rozoPaymentId: params.rozoPaymentId,
+          amount: params.amount,
+          sourceChain: state.sourceChain,
+          sourceToken: state.sourceToken,
+          destinationChain: state.destinationChain,
+          destinationToken: state.destinationToken,
+          destinationAddress: state.destinationAddress,
+          sourceTxHash: params.sourceTxHash,
+          destinationTxHash: params.destinationTxHash,
+          status: params.status || "completed",
+        });
+      } catch (error) {
+        console.error("Failed to save bridge transaction:", error);
+      }
+    },
+    [
+      state.sourceChain,
+      state.sourceToken,
+      state.destinationChain,
+      state.destinationToken,
+      state.destinationAddress,
+    ]
+  );
+
+  // Get transaction history for a wallet
+  const getTransactionHistory = useCallback(
+    (walletAddress: string): BridgeHistoryItem[] => {
+      return getBridgeHistoryForWallet(walletAddress);
+    },
+    []
+  );
+
+  // Clear transaction history for a wallet
+  const clearTransactionHistory = useCallback((walletAddress: string) => {
+    try {
+      clearBridgeHistoryForWallet(walletAddress);
+    } catch (error) {
+      console.error("Failed to clear bridge transaction history:", error);
+    }
+  }, []);
+
   const contextValue: BridgeContextType = useMemo(
     () => ({
       ...state,
@@ -429,9 +515,14 @@ export function BridgeProvider({
       availableDestinationChains,
       availableSourceTokens,
       availableDestinationTokens,
+      saveTransaction,
+      getTransactionHistory,
+      clearTransactionHistory,
     }),
     [
       state,
+      isDestinationAddressValid,
+      setDestinationAddress,
       setSourceChain,
       setSourceToken,
       setDestinationChain,
@@ -443,6 +534,9 @@ export function BridgeProvider({
       availableDestinationChains,
       availableSourceTokens,
       availableDestinationTokens,
+      saveTransaction,
+      getTransactionHistory,
+      clearTransactionHistory,
     ]
   );
 

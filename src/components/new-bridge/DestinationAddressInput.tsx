@@ -11,6 +11,7 @@ import {
   rozoStellar,
   validateAddressForChain,
 } from "@rozoai/intent-common";
+import { useEffect } from "react";
 import {
   Arbitrum,
   Base,
@@ -88,6 +89,10 @@ export function DestinationAddressInput({
       onErrorChange?.("Invalid address");
     }
   };
+
+  useEffect(() => {
+    handleBlur();
+  }, [chainId, error]);
 
   return (
     <FieldSet>

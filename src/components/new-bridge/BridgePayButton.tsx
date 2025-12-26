@@ -4,6 +4,9 @@ import {
   ExternalPaymentOptionsString,
   FeeType,
   generateIntentTitle,
+  PaymentCompletedEvent,
+  PaymentPayoutCompletedEvent,
+  PaymentStartedEvent,
   RozoPayUserMetadata,
   rozoSolana,
   rozoStellar,
@@ -12,7 +15,9 @@ import {
 } from "@rozoai/intent-common";
 import { RozoPayButton, useRozoPayUI } from "@rozoai/intent-pay";
 import { Loader2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { useAccount } from "wagmi";
 import { Button } from "../ui/button";
 import { useBridge } from "./providers/BridgeProvider";
 
@@ -62,9 +67,134 @@ export function BridgePayButton({
 }: BridgePayButtonProps) {
   const bridge = useBridge();
   const { resetPayment } = useRozoPayUI();
-  const { stellarConnected } = useStellarWallet();
+  const { stellarConnected, stellarAddress, checkTrustline } =
+    useStellarWallet();
+  const { address: evmAddress, isConnected: evmConnected } = useAccount();
 
   const [isPreparingPayment, setIsPreparingPayment] = useState(false);
+
+  // Get wallet address based on source chain
+  const getWalletAddress = useCallback((): string | null => {
+    if (!bridge.sourceChain) return null;
+
+    // If source is Stellar, use Stellar address
+    if (bridge.sourceChain.chainId === rozoStellar.chainId) {
+      return stellarConnected && stellarAddress ? stellarAddress : null;
+    }
+
+    // For EVM chains, use EVM address
+    if (evmConnected && evmAddress) {
+      return evmAddress;
+    }
+
+    return null;
+  }, [
+    bridge.sourceChain,
+    stellarConnected,
+    stellarAddress,
+    evmConnected,
+    evmAddress,
+  ]);
+
+  // Check if bridge state is valid for saving transaction
+  const isBridgeStateValid = useCallback((): boolean => {
+    return !!(
+      bridge.sourceChain &&
+      bridge.sourceToken &&
+      bridge.destinationChain &&
+      bridge.destinationToken &&
+      bridge.destinationAddress
+    );
+  }, [
+    bridge.sourceChain,
+    bridge.sourceToken,
+    bridge.destinationChain,
+    bridge.destinationToken,
+    bridge.destinationAddress,
+  ]);
+
+  // Handle payment started
+  const handlePaymentStarted = useCallback(
+    (event: PaymentStartedEvent) => {
+      const walletAddress = getWalletAddress();
+      console.log("handlePaymentStarted", event);
+      if (walletAddress && isBridgeStateValid()) {
+        try {
+          bridge.saveTransaction({
+            walletAddress,
+            paymentId: event.paymentId,
+            rozoPaymentId: undefined,
+            amount: amount,
+            sourceTxHash: undefined,
+            status: "pending",
+          });
+        } catch (error) {
+          console.error("Failed to save bridge transaction:", error);
+        }
+      }
+    },
+    [amount]
+  );
+
+  // Handle payment completed
+  const handlePaymentCompleted = useCallback(
+    (event: PaymentCompletedEvent) => {
+      const walletAddress = getWalletAddress();
+      console.log("handlePaymentCompleted", event);
+      if (walletAddress && isBridgeStateValid()) {
+        try {
+          toast.success("Payment completed!", {
+            description: `Your ${bridge.sourceToken?.symbol} payment has been started. It may take a moment to complete.`,
+            duration: 5000,
+          });
+          bridge.saveTransaction({
+            walletAddress,
+            paymentId: event.paymentId,
+            rozoPaymentId: event.rozoPaymentId,
+            amount: amount,
+            sourceTxHash: event.txHash,
+            status: "completed",
+          });
+        } catch (error) {
+          console.error("Failed to save bridge transaction:", error);
+        }
+      }
+    },
+    [amount]
+  );
+
+  // Handle payout completed
+  const handlePayoutCompleted = useCallback(
+    (event: PaymentPayoutCompletedEvent) => {
+      const walletAddress = getWalletAddress();
+      console.log("handlePayoutCompleted", event);
+
+      if (walletAddress && isBridgeStateValid()) {
+        try {
+          toast.success("Payout completed!", {
+            description: `Your ${bridge.sourceToken?.symbol} payout has been completed successfully.`,
+            duration: 5000,
+          });
+          // Update transaction with payout info if it exists, or create new one
+          bridge.saveTransaction({
+            walletAddress,
+            paymentId: event.paymentId,
+            rozoPaymentId: event.rozoPaymentId,
+            amount: amount,
+            sourceTxHash: event.paymentTx?.hash,
+            destinationTxHash: event.payoutTx?.hash,
+            status: "completed",
+          });
+          checkTrustline().catch((error) => {
+            console.error("Failed to check trustline:", error);
+          });
+        } catch (error) {
+          console.error("Failed to save bridge transaction:", error);
+        }
+      }
+    },
+    [amount]
+  );
 
   const intentConfig: PayParams | null = useMemo(() => {
     if (
@@ -131,7 +261,7 @@ export function BridgePayButton({
     const preparePayment = async () => {
       if (intentConfig && parseFloat(intentConfig.toUnits || "0") > 0) {
         setIsPreparingPayment(true);
-        console.log("[BridgePayButton] intentConfig", intentConfig);
+
         try {
           await resetPayment(intentConfig as any);
         } catch (error) {
@@ -233,8 +363,9 @@ export function BridgePayButton({
       preferredTokens={intentConfig.preferredTokens}
       paymentOptions={intentConfig.paymentOptions}
       intent={intentConfig.intent}
-      onPaymentCompleted={() => {}}
-      onPayoutCompleted={() => {}}
+      onPaymentStarted={handlePaymentStarted}
+      onPaymentCompleted={handlePaymentCompleted}
+      onPayoutCompleted={handlePayoutCompleted}
       connectedWalletOnly={intentConfig.connectedWalletOnly}
       showProcessingPayout
       resetOnSuccess

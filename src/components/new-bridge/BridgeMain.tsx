@@ -20,13 +20,13 @@ import { AmountLimitWarning } from "./AmountLimitWarning";
 import { BridgeCard } from "./BridgeCard";
 import { BridgeSwapButton } from "./BridgeSwapButton";
 import { DestinationAddressInput } from "./DestinationAddressInput";
-import { HistoryDialog } from "./HistoryDialog";
 import { MemoInput } from "./MemoInput";
 import { StellarAddressInput } from "./StellarAddressInput";
 import { TokenAmountInput } from "./TokenAmountInput";
 import { getStellarHistoryForWallet } from "./utils/history";
 
 import { cn, formatAddress } from "@/lib/utils";
+import { BridgeHistoryModal } from "./BridgeHistoryModal";
 import { BridgePayButton } from "./BridgePayButton";
 import { useBridge } from "./providers/BridgeProvider";
 import { useDestinationSelector, useSourceSelector } from "./providers/hooks";
@@ -43,6 +43,7 @@ export function BridgeMain() {
     sourceChain,
     sourceToken,
   } = useBridge();
+
   const sourceSelector = useSourceSelector();
   const destinationSelector = useDestinationSelector();
   // Manual Stellar address for deposits (when wallet not connected)
@@ -335,7 +336,6 @@ export function BridgeMain() {
     stellarAddress,
     destinationAddress,
     isDestinationAddressValid,
-    setDestinationAddress,
   ]);
 
   // Close popover when address becomes valid
@@ -357,11 +357,6 @@ export function BridgeMain() {
 
   const handleManualAddressErrorChange = useCallback((error: string) => {
     setAddressError(error);
-    // Only clear destination address if there's an actual error
-    // Don't clear when error is being cleared (empty string)
-    if (error && error.trim() !== "") {
-      setDestinationAddress("");
-    }
   }, []);
 
   const handleManualDestinationAddressChange = useCallback(
@@ -714,7 +709,7 @@ export function BridgeMain() {
 
       {/* History Dialog */}
       {stellarConnected && stellarAddress && (
-        <HistoryDialog
+        <BridgeHistoryModal
           open={historyDialogOpen}
           onOpenChange={setHistoryDialogOpen}
           walletAddress={stellarAddress}
