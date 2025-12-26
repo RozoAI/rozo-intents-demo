@@ -52,10 +52,6 @@ export function AnalyticsCard() {
 
           {data.txs && data.txs.length > 0 && (
             <div className="mt-3">
-              <div className="flex justify-center gap-2 mb-3 min-w-fit">
-                <Badge variant="outline">Execution Time</Badge>
-              </div>
-
               <AnalyticsTxsLineChart txs={data.txs} />
             </div>
           )}

@@ -1,12 +1,12 @@
 "use client";
 
 import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
-import { Bar, BarChart, CartesianGrid, LabelList, XAxis } from "recharts";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 interface TransactionData {
   timestamp: string;
@@ -18,71 +18,95 @@ interface AnalyticsTxsLineChartProps {
   txs: TransactionData[];
 }
 
-const chartConfig = {
-  count: {
-    label: "Transactions",
-    color: "hsl(var(--chart-1))",
-  },
-} satisfies ChartConfig;
+const getColorClass = (color: "green" | "yellow" | "red") => {
+  switch (color) {
+    case "green":
+      return "bg-green-500";
+    case "yellow":
+      return "bg-yellow-500";
+    case "red":
+      return "bg-red-500";
+    default:
+      return "bg-gray-300";
+  }
+};
+
+const formatDateTime = (timestamp: string) => {
+  const date = new Date(timestamp);
+  return date.toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+};
 
 export function AnalyticsTxsLineChart({ txs }: AnalyticsTxsLineChartProps) {
   if (!txs || txs.length === 0) {
     return null;
   }
 
-  // Count transactions by color
+  // Calculate percentage for each color
+  const total = txs.length;
   const greenCount = txs.filter((tx) => tx.color === "green").length;
   const yellowCount = txs.filter((tx) => tx.color === "yellow").length;
   const redCount = txs.filter((tx) => tx.color === "red").length;
-
-  const chartData = [
-    {
-      category: "Fast",
-      count: greenCount,
-    },
-    {
-      category: "Medium",
-      count: yellowCount,
-    },
-    {
-      category: "Slow",
-      count: redCount,
-    },
-  ];
+  const greenPercentage = Math.round((greenCount / total) * 100);
 
   return (
-    <ChartContainer config={chartConfig} className="h-[120px] w-full">
-      <BarChart
-        accessibilityLayer
-        data={chartData}
-        margin={{
-          top: 20,
-          left: 0,
-          right: 0,
-          bottom: 0,
-        }}
-      >
-        <CartesianGrid vertical={false} />
-        <XAxis
-          dataKey="category"
-          tickLine={false}
-          tickMargin={8}
-          axisLine={false}
-          tick={{ fontSize: 11 }}
-        />
-        <ChartTooltip
-          cursor={false}
-          content={<ChartTooltipContent hideLabel />}
-        />
-        <Bar dataKey="count" fill="var(--color-count)" radius={6}>
-          <LabelList
-            position="top"
-            offset={8}
-            className="fill-foreground"
-            fontSize={11}
-          />
-        </Bar>
-      </BarChart>
-    </ChartContainer>
+    <TooltipProvider>
+      <div className="w-full space-y-2">
+        {/* Status bar - horizontal timeline of transactions */}
+        <div className="flex items-center gap-0.5 h-8 w-full overflow-hidden rounded-sm">
+          {txs.map((tx, index) => {
+            const dateTime = formatDateTime(tx.timestamp);
+            return (
+              <Tooltip key={index}>
+                <TooltipTrigger asChild>
+                  <div
+                    className={cn(
+                      "flex-1 min-w-[2px] h-full transition-colors cursor-pointer hover:opacity-80",
+                      getColorClass(tx.color)
+                    )}
+                  />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  <div>
+                    <div>{dateTime}</div>
+                    <div>Execution: {tx.duration}s</div>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </div>
+
+        {/* Status summary */}
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <div className="h-2 w-2 rounded-sm bg-green-500" />
+              <span>Fast: {greenCount}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="h-2 w-2 rounded-sm bg-yellow-500" />
+              <span>Medium: {yellowCount}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="h-2 w-2 rounded-sm bg-red-500" />
+              <span>Slow: {redCount}</span>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="font-medium text-foreground">
+              {greenPercentage}% fast
+            </span>
+            <span className="ml-1">on the last {total} transactions</span>
+          </div>
+        </div>
+      </div>
+    </TooltipProvider>
   );
 }
