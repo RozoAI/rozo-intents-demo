@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { Clock, DollarSign, Loader2 } from "lucide-react";
 import { AnalyticsTxsLineChart } from "./AnalyticsTxsLineChart";
@@ -20,10 +19,6 @@ export function AnalyticsCard() {
         </div>
       ) : data ? (
         <>
-          <div className="flex justify-center gap-2 mb-3 min-w-fit">
-            <Badge>Last 50 Transactions</Badge>
-          </div>
-
           <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3">
             <div className="flex flex-col gap-0.5 items-center text-center">
               <div className="flex items-center justify-center gap-1.5 text-muted-foreground">

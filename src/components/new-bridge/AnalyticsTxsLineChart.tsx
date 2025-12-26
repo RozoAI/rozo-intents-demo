@@ -49,11 +49,9 @@ export function AnalyticsTxsLineChart({ txs }: AnalyticsTxsLineChartProps) {
   }
 
   // Calculate percentage for each color
-  const total = txs.length;
   const greenCount = txs.filter((tx) => tx.color === "green").length;
   const yellowCount = txs.filter((tx) => tx.color === "yellow").length;
   const redCount = txs.filter((tx) => tx.color === "red").length;
-  const greenPercentage = Math.round((greenCount / total) * 100);
 
   return (
     <TooltipProvider>
@@ -100,10 +98,7 @@ export function AnalyticsTxsLineChart({ txs }: AnalyticsTxsLineChartProps) {
             </div>
           </div>
           <div className="text-right">
-            <span className="font-medium text-foreground">
-              {greenPercentage}% fast
-            </span>
-            <span className="ml-1">on the last {total} transactions</span>
+            <span>Slow: take more than 60 seconds</span>
           </div>
         </div>
       </div>
