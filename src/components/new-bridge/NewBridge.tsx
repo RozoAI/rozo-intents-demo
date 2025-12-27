@@ -598,9 +598,9 @@ export function NewBridge() {
                   currency={stellarCurrency}
                   value={manualStellarAddress.address}
                   onChange={manualStellarAddress.setAddress}
-                  onTrustlineStatusChange={
-                    manualStellarAddress.setTrustlineStatus
-                  }
+                  onTrustlineStatusChange={(address, exists, balance) => {
+                    manualStellarAddress.setTrustlineStatus(exists, balance);
+                  }}
                   error={manualStellarAddress.addressError}
                   onErrorChange={manualStellarAddress.setAddressError}
                 />

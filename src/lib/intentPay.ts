@@ -1,7 +1,11 @@
 // Intent Pay SDK integration
 // Real implementation using @rozoai/intent-pay for gasless, commission-free transfers
 
-import { FeeType, TokenSymbol } from "@rozoai/intent-common";
+import {
+  ExternalPaymentOptionsString,
+  FeeType,
+  TokenSymbol,
+} from "@rozoai/intent-common";
 import { Address } from "viem";
 
 // Base chain configuration for Stellar transfers
@@ -35,6 +39,7 @@ export interface IntentPayConfig {
   }; // Optional memo for Stellar transfers
   receiverMemo?: string; // Optional receiver memo for deposits
   metadata?: object;
+  paymentOptions?: ExternalPaymentOptionsString[];
 }
 
 // Get USDC token address for a given chain (EVM chains only)
