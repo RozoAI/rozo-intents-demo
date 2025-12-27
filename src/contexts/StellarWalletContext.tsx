@@ -136,26 +136,26 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
 
   // Load stored wallet data from localStorage
   const loadStoredWallet = (): StoredWalletData | null => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) return null;
+    // try {
+    //   const stored = localStorage.getItem(STORAGE_KEY);
+    //   if (!stored) return null;
 
-      const wallets = JSON.parse(stored) as StoredWalletData[];
-      const data = wallets[wallets.length - 1];
+    //   const wallets = JSON.parse(stored) as StoredWalletData[];
+    //   const data = wallets[wallets.length - 1];
 
-      // Check if data is not too old (24 hours)
-      const MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-      if (Date.now() - new Date(data.timestamp).getTime() > MAX_AGE) {
-        localStorage.removeItem(STORAGE_KEY);
-        return null;
-      }
+    //   // Check if data is not too old (24 hours)
+    //   const MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+    //   if (Date.now() - new Date(data.timestamp).getTime() > MAX_AGE) {
+    //     localStorage.removeItem(STORAGE_KEY);
+    //     return null;
+    //   }
 
-      return data;
-    } catch (error) {
-      console.error("Error loading stored wallet:", error);
-      localStorage.removeItem(STORAGE_KEY);
-      return null;
-    }
+    //   return data;
+    // } catch (error) {
+    //   console.error("Error loading stored wallet:", error);
+    //   localStorage.removeItem(STORAGE_KEY);
+    return null;
+    // }
   };
 
   // Save wallet data to localStorage

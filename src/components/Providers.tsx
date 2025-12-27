@@ -39,8 +39,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <RozoPayProvider
           stellarKit={stellarKit}
-          debugMode={true}
-          stellarWalletPersistence={true}
+          debugMode={false}
+          stellarWalletPersistence={false}
           mode={resolvedTheme === "dark" ? "dark" : "light"}
         >
           {children}
