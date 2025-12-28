@@ -58,27 +58,33 @@ export function AnalyticsTxsLineChart({ txs }: AnalyticsTxsLineChartProps) {
       <div className="w-full space-y-2">
         {/* Status bar - horizontal timeline of transactions */}
         <div className="flex items-center gap-0.5 h-8 w-full overflow-hidden rounded-sm">
-          {txs.map((tx, index) => {
-            const dateTime = formatDateTime(tx.timestamp);
-            return (
-              <Tooltip key={index}>
-                <TooltipTrigger asChild>
-                  <div
-                    className={cn(
-                      "flex-1 min-w-[2px] h-full transition-colors cursor-pointer hover:opacity-80",
-                      getColorClass(tx.color)
-                    )}
-                  />
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">
-                  <div>
-                    <div>{dateTime}</div>
-                    <div>Execution: {tx.duration}s</div>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            );
-          })}
+          {[...txs]
+            .sort(
+              (a, b) =>
+                new Date(a.timestamp).getTime() -
+                new Date(b.timestamp).getTime()
+            )
+            .map((tx, index) => {
+              const dateTime = formatDateTime(tx.timestamp);
+              return (
+                <Tooltip key={index}>
+                  <TooltipTrigger asChild>
+                    <div
+                      className={cn(
+                        "flex-1 min-w-[2px] h-full transition-colors cursor-pointer hover:opacity-80",
+                        getColorClass(tx.color)
+                      )}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    <div>
+                      <div>{dateTime}</div>
+                      <div>Execution: {tx.duration}s</div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
         </div>
 
         {/* Status summary */}
