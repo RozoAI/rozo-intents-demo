@@ -139,16 +139,17 @@ export function BridgePayButton({
   // Handle payment completed
   const handlePaymentCompleted = useCallback(
     (event: PaymentCompletedEvent) => {
-      const walletAddress = getWalletAddress();
-      console.log("handlePaymentCompleted", event);
-      if (walletAddress && isBridgeStateValid()) {
+      if (isBridgeStateValid()) {
         try {
           toast.success("Payment completed!", {
             description: `Your ${bridge.sourceToken?.symbol} payment has been started. It may take a moment to complete.`,
             duration: 5000,
           });
+          const walletAddress = getWalletAddress();
+          const identifier = walletAddress || new Date().getTime().toString();
+
           bridge.saveTransaction({
-            walletAddress,
+            walletAddress: identifier,
             paymentId: event.paymentId,
             rozoPaymentId: event.rozoPaymentId,
             amount: amount,
@@ -166,18 +167,18 @@ export function BridgePayButton({
   // Handle payout completed
   const handlePayoutCompleted = useCallback(
     (event: PaymentPayoutCompletedEvent) => {
-      const walletAddress = getWalletAddress();
-      console.log("handlePayoutCompleted", event);
-
-      if (walletAddress && isBridgeStateValid()) {
+      if (isBridgeStateValid()) {
         try {
           toast.success("Payout completed!", {
             description: `Your ${bridge.sourceToken?.symbol} payout has been completed successfully.`,
             duration: 5000,
           });
-          // Update transaction with payout info if it exists, or create new one
+
+          const walletAddress = getWalletAddress();
+          const identifier = walletAddress || new Date().getTime().toString();
+
           bridge.saveTransaction({
-            walletAddress,
+            walletAddress: identifier,
             paymentId: event.paymentId,
             rozoPaymentId: event.rozoPaymentId,
             amount: amount,
@@ -185,9 +186,12 @@ export function BridgePayButton({
             destinationTxHash: event.payoutTx?.hash,
             status: "completed",
           });
-          checkTrustline().catch((error) => {
-            console.error("Failed to check trustline:", error);
-          });
+
+          if (walletAddress) {
+            checkTrustline().catch((error) => {
+              console.error("Failed to check trustline:", error);
+            });
+          }
         } catch (error) {
           console.error("Failed to save bridge transaction:", error);
         }

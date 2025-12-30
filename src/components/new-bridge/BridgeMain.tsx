@@ -23,7 +23,6 @@ import { DestinationAddressInput } from "./DestinationAddressInput";
 import { MemoInput } from "./MemoInput";
 import { StellarAddressInput } from "./StellarAddressInput";
 import { TokenAmountInput } from "./TokenAmountInput";
-import { getStellarHistoryForWallet } from "./utils/history";
 
 import { cn, formatAddress } from "@/lib/utils";
 import { BridgeHistoryModal } from "./BridgeHistoryModal";
@@ -31,6 +30,7 @@ import { BridgePayButton } from "./BridgePayButton";
 import { useBridge } from "./providers/BridgeProvider";
 import { useDestinationSelector, useSourceSelector } from "./providers/hooks";
 import { TokenSelectorTrigger } from "./token-selector/TokenSelectorTrigger";
+import { getMergedBridgeHistories } from "./utils/bridgeHistory";
 
 export function BridgeMain() {
   const {
@@ -139,10 +139,9 @@ export function BridgeMain() {
 
   const currency = isCurrencyEUR ? TokenSymbol.EURC : TokenSymbol.USDC;
 
-  // Check if there's any history for the current wallet
+  // Check if there's any history for the current user (wallet or session)
   const hasHistory = useMemo(() => {
-    if (!stellarConnected || !stellarAddress) return false;
-    const history = getStellarHistoryForWallet(stellarAddress);
+    const history = getMergedBridgeHistories();
     return history.length > 0;
   }, [stellarConnected, stellarAddress, historyUpdateTrigger]);
 
@@ -288,11 +287,11 @@ export function BridgeMain() {
       setHistoryUpdateTrigger((prev) => prev + 1);
     };
 
-    window.addEventListener("stellar-payment-completed", handleHistoryUpdate);
+    window.addEventListener("bridge-payment-completed", handleHistoryUpdate);
 
     return () => {
       window.removeEventListener(
-        "stellar-payment-completed",
+        "bridge-payment-completed",
         handleHistoryUpdate
       );
     };
@@ -458,7 +457,7 @@ export function BridgeMain() {
             Bridge
           </h1>
           <div className="flex items-center justify-between gap-3">
-            {stellarConnected && hasHistory ? (
+            {hasHistory ? (
               <Button
                 variant="outline"
                 size="sm"
@@ -468,11 +467,11 @@ export function BridgeMain() {
                 <Clock className="size-4 sm:mr-2" />
                 <span className="hidden sm:inline">Show History</span>
               </Button>
-            ) : stellarConnected ? (
+            ) : (
               <span className="text-xs sm:text-sm text-muted-foreground">
                 No history found
               </span>
-            ) : null}
+            )}
 
             {/* <TokenSelector /> */}
           </div>
@@ -708,13 +707,11 @@ export function BridgeMain() {
       </div>
 
       {/* History Dialog */}
-      {stellarConnected && stellarAddress && (
-        <BridgeHistoryModal
-          open={historyDialogOpen}
-          onOpenChange={setHistoryDialogOpen}
-          walletAddress={stellarAddress}
-        />
-      )}
+      <BridgeHistoryModal
+        open={historyDialogOpen}
+        onOpenChange={setHistoryDialogOpen}
+        walletAddress={stellarAddress}
+      />
     </div>
   );
 }

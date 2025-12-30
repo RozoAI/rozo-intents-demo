@@ -1,7 +1,16 @@
 "use client";
 
-import { getChainLogoUrl, getTokenLogoUrl } from "@/lib/crypto-logos";
 import { formatAddress } from "@/lib/utils";
+import {
+  arbitrum,
+  base,
+  bsc,
+  ethereum,
+  polygon,
+  rozoSolana,
+  rozoStellar,
+  TokenLogo,
+} from "@rozoai/intent-common";
 import {
   ArrowRight,
   CheckCircle2,
@@ -14,6 +23,15 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import {
+  Arbitrum,
+  Base,
+  BinanceSmartChain,
+  Ethereum,
+  Polygon,
+  Solana,
+  Stellar,
+} from "../icons/chains";
 import { Badge } from "../ui/badge";
 import {
   Dialog,
@@ -25,8 +43,7 @@ import {
 import {
   BridgeHistoryItem,
   clearBridgeHistoryForWallet,
-  getBridgeHistoryForWallet,
-  removeDuplicateBridgePayments,
+  getMergedBridgeHistories,
   ROZO_BRIDGE_HISTORY_STORAGE_KEY,
 } from "./utils/bridgeHistory";
 
@@ -35,6 +52,20 @@ interface BridgeHistoryModalProps {
   onOpenChange: (open: boolean) => void;
   walletAddress: string;
 }
+
+const chainToLogo = {
+  [arbitrum.chainId]: <Arbitrum width={16} height={16} />,
+  [base.chainId]: <Base width={16} height={16} />,
+  [bsc.chainId]: <BinanceSmartChain width={16} height={16} />,
+  [ethereum.chainId]: (
+    <Ethereum width={16} height={16} className="rounded-full" />
+  ),
+  [polygon.chainId]: <Polygon width={16} height={16} />,
+  [rozoSolana.chainId]: <Solana width={16} height={16} />,
+  [rozoStellar.chainId]: (
+    <Stellar width={16} height={16} className="rounded-full" />
+  ),
+};
 
 export function BridgeHistoryModal({
   open,
@@ -47,9 +78,7 @@ export function BridgeHistoryModal({
   const loadHistory = useCallback(() => {
     try {
       // First, clean up any existing duplicates
-      removeDuplicateBridgePayments(walletAddress);
-
-      const bridgeHistory = getBridgeHistoryForWallet(walletAddress);
+      const bridgeHistory = getMergedBridgeHistories();
 
       setHistory(bridgeHistory);
     } catch (error) {
@@ -150,27 +179,9 @@ export function BridgeHistoryModal({
     }
   };
 
-  const getExplorerUrl = (chainId: number, txHash?: string) => {
-    if (!txHash) return null;
-
-    // Map chain IDs to explorer URLs
-    const explorerMap: Record<number, string> = {
-      1: `https://etherscan.io/tx/${txHash}`, // Ethereum
-      8453: `https://basescan.org/tx/${txHash}`, // Base
-      42161: `https://arbiscan.io/tx/${txHash}`, // Arbitrum
-      10: `https://optimistic.etherscan.io/tx/${txHash}`, // Optimism
-      137: `https://polygonscan.com/tx/${txHash}`, // Polygon
-      56: `https://bscscan.com/tx/${txHash}`, // BSC
-      900: `https://explorer.solana.com/tx/${txHash}`, // Solana
-      1500: `https://stellar.expert/explorer/public/tx/${txHash}`, // Stellar
-    };
-
-    return explorerMap[chainId] || null;
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-md! max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Bridge Transaction History</DialogTitle>
           <DialogDescription>
@@ -218,24 +229,10 @@ export function BridgeHistoryModal({
                   >
                     {/* Header: Amount, Status, Date */}
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2">
-                          <Image
-                            src={getTokenLogoUrl(item.sourceTokenSymbol)}
-                            alt={item.sourceTokenSymbol}
-                            width={24}
-                            height={24}
-                            className="w-6 h-6 rounded-full"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = "/globe.svg";
-                            }}
-                          />
-                          <span className="text-base font-semibold text-neutral-900 dark:text-white">
-                            {item.amount} {item.sourceTokenSymbol}
-                          </span>
-                        </div>
-                        {getStatusBadge(item.status)}
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-neutral-900 dark:text-white">
+                          {item.amount} {item.sourceTokenSymbol}
+                        </span>
                       </div>
                       <div className="text-right">
                         <span className="text-xs text-muted-foreground block">
@@ -245,63 +242,63 @@ export function BridgeHistoryModal({
                     </div>
 
                     {/* Bridge Flow: Source -> Destination */}
-                    <div className="flex items-center gap-3 py-2">
-                      {/* Source Chain */}
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="flex items-center gap-2 py-1.5">
+                      {/* Source */}
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <div className="relative">
                           <Image
-                            src={getChainLogoUrl(item.sourceChainId)}
-                            alt={item.sourceChainName}
-                            width={32}
-                            height={32}
-                            className="w-8 h-8 rounded-full"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = "/globe.svg";
-                            }}
+                            src={
+                              item.sourceTokenSymbol === "USDC"
+                                ? TokenLogo.USDC
+                                : TokenLogo.USDT
+                            }
+                            alt={item.sourceTokenSymbol}
+                            width={24}
+                            height={24}
+                            className="size-6"
                           />
+                          <div className="absolute -bottom-0.5 -right-0.5 rounded-full scale-90">
+                            {chainToLogo[item.sourceChainId]}
+                          </div>
                         </div>
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-xs font-medium text-neutral-900 dark:text-white truncate">
-                            {item.sourceChainName}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {item.sourceTokenSymbol}
-                          </span>
-                        </div>
+                        <span className="text-xs font-medium text-neutral-900 dark:text-white">
+                          {item.sourceChainName}
+                        </span>
                       </div>
 
                       {/* Arrow */}
-                      <ArrowRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 mx-1" />
 
-                      {/* Destination Chain */}
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                      {/* Destination */}
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <div className="relative">
                           <Image
-                            src={getChainLogoUrl(item.destinationChainId)}
-                            alt={item.destinationChainName}
-                            width={32}
-                            height={32}
-                            className="w-8 h-8 rounded-full"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = "/globe.svg";
-                            }}
+                            src={
+                              item.destinationTokenSymbol === "USDC"
+                                ? TokenLogo.USDC
+                                : TokenLogo.USDT
+                            }
+                            alt={item.destinationTokenSymbol}
+                            width={24}
+                            height={24}
+                            className="size-6"
                           />
+                          <div className="absolute -bottom-0.5 -right-0.5 rounded-full scale-90">
+                            {chainToLogo[item.destinationChainId]}
+                          </div>
                         </div>
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-xs font-medium text-neutral-900 dark:text-white truncate">
-                            {item.destinationChainName}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {item.destinationTokenSymbol}
-                          </span>
-                        </div>
+                        <span className="text-xs font-medium text-neutral-900 dark:text-white">
+                          {item.destinationChainName}
+                        </span>
+                      </div>
+
+                      <div className="ml-auto">
+                        {getStatusBadge(item.status)}
                       </div>
                     </div>
 
                     {/* Footer: Destination Address, Transaction Links, Receipt */}
-                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-neutral-200 dark:border-neutral-800">
+                    <div className="flex items-end justify-between">
                       <div className="flex flex-col gap-1.5 flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground">
@@ -311,48 +308,13 @@ export function BridgeHistoryModal({
                             {formatAddress(item.destinationAddress)}
                           </span>
                         </div>
-                        {/* Transaction Hashes */}
-                        <div className="flex items-center gap-3 flex-wrap">
-                          {item.sourceTxHash && (
-                            <a
-                              href={
-                                getExplorerUrl(
-                                  item.sourceChainId,
-                                  item.sourceTxHash
-                                ) || "#"
-                              }
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                              Source TX
-                            </a>
-                          )}
-                          {item.destinationTxHash && (
-                            <a
-                              href={
-                                getExplorerUrl(
-                                  item.destinationChainId,
-                                  item.destinationTxHash
-                                ) || "#"
-                              }
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                              Destination TX
-                            </a>
-                          )}
-                        </div>
                       </div>
                       {item.rozoPaymentId && (
                         <Link
                           href={`https://invoice.rozo.ai/receipt?id=${item.rozoPaymentId}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs transition-colors whitespace-nowrap px-3 py-2 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-800"
+                          className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs whitespace-nowrap"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
                           View Receipt

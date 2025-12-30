@@ -146,6 +146,32 @@ export const getBridgeHistory = (): BridgeHistoryStorage => {
   }
 };
 
+export const getMergedBridgeHistories = (): BridgeHistoryItem[] => {
+  const allHistory = Array.from(Object.values(getBridgeHistory())).flat();
+
+  // If no session history, nothing to merge
+  if (allHistory.length === 0) return [];
+
+  allHistory.forEach((sessionItem) => {
+    const existingIndex = allHistory.findIndex(
+      (item) => item.paymentId === sessionItem.paymentId
+    );
+
+    if (existingIndex === -1) {
+      // Add session item to wallet history
+      allHistory.push(sessionItem);
+    }
+  });
+
+  // Sort by date descending
+  allHistory.sort(
+    (a, b) =>
+      new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
+  );
+
+  return allHistory;
+};
+
 /**
  * Get bridge history for a specific wallet
  */
