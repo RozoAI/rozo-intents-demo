@@ -16,7 +16,7 @@ export interface BridgeHistoryItem {
   destinationTxHash?: string;
   completedAt: string;
   walletAddress: string;
-  status: "completed" | "pending" | "failed";
+  status: "completed" | "pending" | "failed" | "expired";
 }
 
 export interface BridgeHistoryStorage {
@@ -24,6 +24,9 @@ export interface BridgeHistoryStorage {
 }
 
 export const ROZO_BRIDGE_HISTORY_STORAGE_KEY = "rozo_bridge_history";
+
+// 1 hour in milliseconds
+const PENDING_EXPIRATION_TIME = 60 * 60 * 1000;
 
 /**
  * Save a bridge transaction to history
@@ -53,7 +56,7 @@ export const saveBridgeHistory = ({
   destinationAddress: string;
   sourceTxHash?: string;
   destinationTxHash?: string;
-  status?: "completed" | "pending" | "failed";
+  status?: "completed" | "pending" | "failed" | "expired";
 }): void => {
   try {
     const existingData = getBridgeHistory();
@@ -134,13 +137,60 @@ export const saveBridgeHistory = ({
 };
 
 /**
+ * Expire pending transactions older than 1 hour
+ */
+const expirePendingTransactions = (
+  history: BridgeHistoryStorage
+): BridgeHistoryStorage => {
+  const now = Date.now();
+  const updatedHistory: BridgeHistoryStorage = {};
+  let hasChanges = false;
+
+  Object.entries(history).forEach(([walletAddress, transactions]) => {
+    const updatedTransactions = transactions.map((transaction) => {
+      if (transaction.status === "pending") {
+        const transactionTime = new Date(transaction.completedAt).getTime();
+        const timeDiff = now - transactionTime;
+
+        if (timeDiff > PENDING_EXPIRATION_TIME) {
+          hasChanges = true;
+          return {
+            ...transaction,
+            status: "expired" as const,
+          };
+        }
+      }
+      return transaction;
+    });
+
+    updatedHistory[walletAddress] = updatedTransactions;
+  });
+
+  // Save back to localStorage if there were changes
+  if (hasChanges) {
+    try {
+      localStorage.setItem(
+        ROZO_BRIDGE_HISTORY_STORAGE_KEY,
+        JSON.stringify(updatedHistory)
+      );
+      window.dispatchEvent(new CustomEvent("bridge-payment-completed"));
+    } catch (error) {
+      console.error("Failed to update expired transactions:", error);
+    }
+  }
+
+  return updatedHistory;
+};
+
+/**
  * Get all bridge history
  */
 export const getBridgeHistory = (): BridgeHistoryStorage => {
   try {
     const data = localStorage.getItem(ROZO_BRIDGE_HISTORY_STORAGE_KEY);
     const parsedData = data ? JSON.parse(data) : {};
-    return parsedData;
+    // Automatically expire pending transactions older than 1 hour
+    return expirePendingTransactions(parsedData);
   } catch {
     return {};
   }
@@ -253,7 +303,7 @@ export const removeDuplicateBridgePayments = (walletAddress: string): void => {
 export const updateBridgeTransactionStatus = (
   walletAddress: string,
   paymentId: string,
-  status: "completed" | "pending" | "failed",
+  status: "completed" | "pending" | "failed" | "expired",
   destinationTxHash?: string
 ): void => {
   try {
