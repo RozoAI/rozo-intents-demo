@@ -6,7 +6,6 @@ import {
   generateIntentTitle,
   PaymentCompletedEvent,
   PaymentPayoutCompletedEvent,
-  PaymentStartedEvent,
   RozoPayUserMetadata,
   rozoSolana,
   rozoStellar,
@@ -113,36 +112,13 @@ export function BridgePayButton({
     bridge.destinationAddress,
   ]);
 
-  // Handle payment started
-  const handlePaymentStarted = useCallback(
-    (event: PaymentStartedEvent) => {
-      const walletAddress = getWalletAddress();
-      console.log("handlePaymentStarted", event);
-      if (walletAddress && isBridgeStateValid()) {
-        try {
-          bridge.saveTransaction({
-            walletAddress,
-            paymentId: event.paymentId,
-            rozoPaymentId: undefined,
-            amount: amount,
-            sourceTxHash: undefined,
-            status: "pending",
-          });
-        } catch (error) {
-          console.error("Failed to save bridge transaction:", error);
-        }
-      }
-    },
-    [amount]
-  );
-
   // Handle payment completed
   const handlePaymentCompleted = useCallback(
     (event: PaymentCompletedEvent) => {
       if (isBridgeStateValid()) {
         try {
           toast.success("Payment completed!", {
-            description: `Your ${bridge.sourceToken?.symbol} payment has been started. It may take a moment to complete.`,
+            description: `Your ${bridge.sourceToken?.symbol} (${bridge.sourceChain?.name}) payment has been started. It may take a moment to complete.`,
             duration: 5000,
           });
           const walletAddress = getWalletAddress();
@@ -170,7 +146,7 @@ export function BridgePayButton({
       if (isBridgeStateValid()) {
         try {
           toast.success("Payout completed!", {
-            description: `Your ${bridge.sourceToken?.symbol} payout has been completed successfully.`,
+            description: `Your ${bridge.destinationToken?.symbol} (${bridge.destinationChain?.name}) payout has been completed successfully.`,
             duration: 5000,
           });
 
@@ -244,7 +220,7 @@ export function BridgePayButton({
         items: [
           {
             name: "ROZO Intents",
-            description: `Bridge ${amount} ${bridge.sourceToken?.symbol} to ${bridge.destinationToken?.symbol}`,
+            description: `Bridge ${amount} ${bridge.sourceToken.symbol} (${bridge.sourceChain.name}) to ${bridge.destinationToken.symbol} (${bridge.destinationChain.name})`,
           },
         ],
       } as unknown as RozoPayUserMetadata,
@@ -367,7 +343,6 @@ export function BridgePayButton({
       preferredTokens={intentConfig.preferredTokens}
       paymentOptions={intentConfig.paymentOptions}
       intent={intentConfig.intent}
-      onPaymentStarted={handlePaymentStarted}
       onPaymentCompleted={handlePaymentCompleted}
       onPayoutCompleted={handlePayoutCompleted}
       connectedWalletOnly={intentConfig.connectedWalletOnly}
