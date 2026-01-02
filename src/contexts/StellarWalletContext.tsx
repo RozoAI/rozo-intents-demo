@@ -5,12 +5,12 @@ import { setupCryptoPolyfill } from "@/utils/polyfills";
 import {
   AlbedoModule,
   allowAllModules,
+  FREIGHTER_ID,
   HotWalletModule,
   ISupportedWallet,
   LOBSTR_ID,
   StellarWalletsKit,
   WalletNetwork,
-  XBULL_ID,
   xBullModule,
 } from "@creit.tech/stellar-wallets-kit";
 import {
@@ -31,6 +31,7 @@ import {
   ReactNode,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { toast } from "sonner";
@@ -133,6 +134,8 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
     balance: "0",
     checking: false,
   });
+
+  const kitRef = useRef<StellarWalletsKit | null>(null);
 
   // Load stored wallet data from localStorage
   const loadStoredWallet = (): StoredWalletData | null => {
@@ -533,14 +536,15 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
       }),
     ];
 
-    // Initialize Stellar Wallets Kit with appropriate default wallet
-    // On mobile, we don't set a default to allow all wallets to show
-    const kit = new StellarWalletsKit({
-      network: WalletNetwork.PUBLIC,
-      selectedWalletId: isMobile ? undefined : XBULL_ID,
-      modules,
-    });
-    setStellarKit(kit);
+    if (typeof window !== "undefined" && !kitRef.current) {
+      const kit = new StellarWalletsKit({
+        network: WalletNetwork.PUBLIC,
+        selectedWalletId: isMobile ? undefined : FREIGHTER_ID,
+        modules,
+      });
+      kitRef.current = kit;
+      setStellarKit(kit);
+    }
     setIsInitialized(true);
   }, []);
 
