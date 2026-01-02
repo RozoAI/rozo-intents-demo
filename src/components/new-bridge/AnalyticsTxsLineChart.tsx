@@ -88,7 +88,7 @@ export function AnalyticsTxsLineChart({ txs }: AnalyticsTxsLineChartProps) {
         </div>
 
         {/* Status summary */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <div className="flex items-center justify-between text-[10px] md:text-xs text-muted-foreground">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5">
               <div className="h-2 w-2 rounded-sm bg-green-500" />

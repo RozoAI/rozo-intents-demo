@@ -23,7 +23,9 @@ export function AnalyticsCard() {
             <div className="flex flex-col gap-0.5 items-center text-center">
               <div className="flex items-center justify-center gap-1.5 text-muted-foreground">
                 <Activity className="h-3 w-3" />
-                <span className="text-xs">Last 50 Transactions</span>
+                <span className="text-[10px] md:text-xs">
+                  Last 50 Transactions
+                </span>
               </div>
               <p className="text-base sm:text-lg font-semibold">
                 {data?.last_50_txs?.total_payments.toLocaleString("en-US")}
@@ -33,7 +35,7 @@ export function AnalyticsCard() {
             <div className="flex flex-col gap-0.5 items-center text-center">
               <div className="flex items-center justify-center gap-1.5 text-muted-foreground">
                 <DollarSign className="h-3 w-3" />
-                <span className="text-xs">Volume</span>
+                <span className="text-[10px] md:text-xs">Volume</span>
               </div>
               <p className="text-base sm:text-lg font-semibold">
                 $
@@ -47,7 +49,7 @@ export function AnalyticsCard() {
             <div className="flex flex-col gap-0.5 items-center text-center">
               <div className="flex items-center justify-center gap-1.5 text-muted-foreground">
                 <Clock className="h-3 w-3" />
-                <span className="text-xs">Avg Time</span>
+                <span className="text-[10px] md:text-xs">Avg Time</span>
               </div>
               <p className="text-base sm:text-lg font-semibold">
                 {data?.last_50_txs?.avg_seconds}s
