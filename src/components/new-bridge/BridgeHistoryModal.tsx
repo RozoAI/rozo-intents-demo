@@ -250,6 +250,8 @@ export function BridgeHistoryModal({
                             src={
                               item.sourceTokenSymbol === "USDC"
                                 ? TokenLogo.USDC
+                                : item.sourceTokenSymbol === "EURC"
+                                ? TokenLogo.EURC
                                 : TokenLogo.USDT
                             }
                             alt={item.sourceTokenSymbol}
@@ -276,6 +278,8 @@ export function BridgeHistoryModal({
                             src={
                               item.destinationTokenSymbol === "USDC"
                                 ? TokenLogo.USDC
+                                : item.destinationTokenSymbol === "EURC"
+                                ? TokenLogo.EURC
                                 : TokenLogo.USDT
                             }
                             alt={item.destinationTokenSymbol}
