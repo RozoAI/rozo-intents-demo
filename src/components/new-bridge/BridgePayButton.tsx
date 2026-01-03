@@ -13,6 +13,7 @@ import {
   TokenSymbol,
 } from "@rozoai/intent-common";
 import { RozoPayButton, useRozoPayUI } from "@rozoai/intent-pay";
+import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -69,7 +70,7 @@ export function BridgePayButton({
   const { stellarConnected, stellarAddress, checkTrustline } =
     useStellarWallet();
   const { address: evmAddress, isConnected: evmConnected } = useAccount();
-
+  const queryClient = useQueryClient();
   const [isPreparingPayment, setIsPreparingPayment] = useState(false);
 
   // Get wallet address based on source chain
@@ -166,6 +167,9 @@ export function BridgePayButton({
           if (walletAddress) {
             checkTrustline().catch((error) => {
               console.error("Failed to check trustline:", error);
+            });
+            queryClient.invalidateQueries({
+              queryKey: ["rewards", walletAddress],
             });
           }
         } catch (error) {
