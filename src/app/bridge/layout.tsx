@@ -1,5 +1,6 @@
 import { PoweredBy } from "@/components/PoweredBy";
 import { Providers } from "@/components/Providers";
+import { RewardsBadge } from "@/components/RewardsBadge";
 import { StellarWalletConnect } from "@/components/StellarWalletConnect";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { StellarWalletProvider } from "@/contexts/StellarWalletContext";
@@ -56,6 +57,7 @@ export default function NewPageLayout({
 
             <div className="flex items-center gap-2">
               <ThemeSwitcher />
+              <RewardsBadge />
               <StellarWalletConnect />
             </div>
           </div>
