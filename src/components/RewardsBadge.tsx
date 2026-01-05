@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { useStellarWallet } from "@/contexts/StellarWalletContext";
 import { useGetRewards } from "@/hooks/use-get-rewards";
-import { LeafIcon, Loader } from "lucide-react";
+import { BeanIcon, Loader } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 export function RewardsBadge() {
@@ -25,7 +25,7 @@ export function RewardsBadge() {
             <Loader className="size-3.5 sm:size-4 animate-spin" />
           ) : (
             <>
-              <LeafIcon className="size-3.5 sm:size-4" />
+              <BeanIcon className="size-3.5 sm:size-4" />
               <span className="font-semibold text-xs md:text-sm">
                 {rewards?.seeds?.toLocaleString() ?? 0}
               </span>
