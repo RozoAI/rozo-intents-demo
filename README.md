@@ -1,10 +1,10 @@
 # ROZO Intents - Any chain. Any stablecoin. Seconds.
 
-Intent-based USDC transfers between Base and Stellar, with more chains soon.
+Intent-based USDC transfers across multiple chains including Ethereum, Base, Arbitrum, Optimism, Polygon, BSC (Binance Smart Chain), and Stellar. Supported chains are dynamically determined from the Intent Pay SDK's `supportedPayoutTokens` configuration.
 
 ## Features
 
-- 🌐 **Any Chain**: Transfer stablecoins between Ethereum, Polygon, Arbitrum, Optimism, Base, Stellar, and more
+- 🌐 **Multi-Chain Support**: Transfer stablecoins across Ethereum, Base, Arbitrum, Optimism, Polygon, BSC (Binance Smart Chain), Stellar, and more. All supported chains are determined by the Intent Pay SDK's `supportedPayoutTokens` configuration.
 - 💰 **Any Stablecoin**: Support for USDC, USDT, DAI and other major stablecoins
 - ⚡ **Seconds**: Lightning-fast transfers with intent-based technology
 - 🔒 **Secure**: Native token burning and minting - no wrapped tokens
@@ -21,28 +21,13 @@ Intent-based USDC transfers between Base and Stellar, with more chains soon.
 - **State Management**: Zustand
 - **Wallet Integration**: wagmi v2 + viem
 - **Supported Wallets**: WalletConnect v2, Coinbase Wallet, Browser Extensions
-- **Bridge SDK**: @rozoai/intent-pay@0.0.18-beta.9
+- **Bridge SDK**: @rozoai/intent-pay@latest
 - **Notifications**: Sonner (toast notifications)
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js 18+ and npm
-
-### Environment Configuration
-
-Create a `.env.local` file in the root directory to configure the Intent Pay API endpoint:
-
-```bash
-# Intent Pay API Configuration
-NEXT_PUBLIC_ENDPOINT=https://intentapiv2.rozo.ai/
-
-# Optional: WalletConnect Project ID
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id_here
-```
-
 **Available Endpoints:**
+
 - Production: `https://intentapiv2.rozo.ai/`
 - Development: `https://dev-api.rozo.ai/` (if available)
 - Local: `http://localhost:8000/api/` (for local development)
@@ -52,47 +37,26 @@ NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id_here
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd rozo-intents-demo
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
-3. **Set up environment variables**
-   
-   Copy the example environment file and fill in your values:
-   ```bash
-   cp .env.example .env.local
-   ```
-   
-   Required environment variables:
-   ```env
-   # WalletConnect Project ID (required)
-   NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id_here
-   
-   # RPC URLs (recommended - fallback to public RPCs if not provided)
-   NEXT_PUBLIC_ETHEREUM_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/your-api-key
-   NEXT_PUBLIC_POLYGON_RPC_URL=https://polygon-mainnet.g.alchemy.com/v2/your-api-key
-   NEXT_PUBLIC_ARBITRUM_RPC_URL=https://arb-mainnet.g.alchemy.com/v2/your-api-key
-   NEXT_PUBLIC_OPTIMISM_RPC_URL=https://opt-mainnet.g.alchemy.com/v2/your-api-key
-   NEXT_PUBLIC_BASE_RPC_URL=https://base-mainnet.g.alchemy.com/v2/your-api-key
-   NEXT_PUBLIC_AVALANCHE_RPC_URL=https://api.avax.network/ext/bc/C/rpc
-   
-   # Analytics (optional)
-   NEXT_PUBLIC_ANALYTICS_ID=your_analytics_id_here
-   ```
+3. **Run the development server**
 
-4. **Run the development server**
    ```bash
    npm run dev
    ```
 
-5. **Open your browser**
-   
+4. **Open your browser**
+
    Navigate to [http://localhost:3000](http://localhost:3000) to see the application.
 
 ## Usage
@@ -101,12 +65,12 @@ NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id_here
 
 1. **Connect Wallet**: Click "Connect Wallet" and choose your preferred wallet
 2. **Select Chains**: Choose source and destination chains from the dropdowns
-3. **Enter Details**: 
+3. **Enter Details**:
    - Amount of stablecoin to bridge
    - Recipient address on the destination chain
 4. **Get Quote**: The app automatically fetches a quote when all fields are complete
 5. **Review & Confirm**: Review the quote details including fees and estimated time
-6. **Execute Bridge**: 
+6. **Execute Bridge**:
    - Approve stablecoin spending (if needed)
    - Submit the bridge transaction
    - Track progress through the stepper UI
@@ -120,16 +84,6 @@ NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id_here
 - **Real-time Status**: Live updates on bridge transaction progress
 
 ## Architecture
-
-### Key Components
-
-- **`Bridge.tsx`**: Main bridge interface component
-- **`ChainSelect.tsx`**: Chain selection dropdown with support status
-- **`AmountInput.tsx`**: Stablecoin amount input with balance display and quick actions
-- **`AddressInput.tsx`**: Address input with validation and saved recipients
-- **`QuoteCard.tsx`**: Quote display with fee breakdown and route details
-- **`BridgeStepper.tsx`**: Transaction status tracking with explorer links
-- **`WalletConnect.tsx`**: Wallet connection and network switching
 
 ### State Management
 
@@ -147,7 +101,7 @@ NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id_here
 
 ### Project Structure
 
-```
+```text
 src/
 ├── app/                    # Next.js app router pages
 ├── components/            # React components
@@ -183,10 +137,13 @@ npm run type-check   # Run TypeScript checks
 
 #### Adding New Chains
 
-1. Add chain configuration to `lib/chains.ts`
-2. Update the wagmi config in `lib/wagmi.ts`
-3. Add RPC URL environment variable
-4. Update the Intent Pay adapter to support the new chain
+Supported chains are determined by the Intent Pay SDK's `supportedPayoutTokens` configuration from `@rozoai/intent-common`. To add support for a new chain:
+
+1. Ensure the chain is included in the Intent Pay SDK's `supportedPayoutTokens`
+2. Add chain configuration to `lib/chains.ts` (if needed for UI/logos)
+3. Update the wagmi config in `lib/wagmi.ts` (if it's an EVM chain)
+4. Add RPC URL environment variable (recommended for better performance)
+5. Add chain logo/icon to the components if needed
 
 #### Styling
 
@@ -229,10 +186,12 @@ npm run type-check   # Run TypeScript checks
 ### Common Issues
 
 1. **WalletConnect not working**
+
    - Ensure `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` is set
    - Check that the project ID is valid
 
 2. **RPC errors**
+
    - Verify RPC URLs are correct and have sufficient rate limits
    - Consider using dedicated RPC providers for production
 

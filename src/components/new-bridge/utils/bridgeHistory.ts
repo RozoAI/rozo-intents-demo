@@ -15,15 +15,15 @@ export interface BridgeHistoryItem {
   sourceTxHash?: string;
   destinationTxHash?: string;
   completedAt: string;
-  walletAddress: string;
+  walletAddress: string | null;
   status: "completed" | "pending" | "failed" | "expired";
 }
 
-export interface BridgeHistoryStorage {
-  [walletAddress: string]: BridgeHistoryItem[];
-}
+// New flat array structure - all transactions in one array
+export type BridgeHistoryStorage = BridgeHistoryItem[];
 
-export const ROZO_BRIDGE_HISTORY_STORAGE_KEY = "rozo_bridge_history";
+// New storage key to start fresh
+export const ROZO_BRIDGE_HISTORY_STORAGE_KEY = "rozo_bridge_history_v2";
 
 // 1 hour in milliseconds
 const PENDING_EXPIRATION_TIME = 60 * 60 * 1000;
@@ -45,7 +45,7 @@ export const saveBridgeHistory = ({
   destinationTxHash,
   status = "completed",
 }: {
-  walletAddress: string;
+  walletAddress: string | null;
   paymentId: string;
   rozoPaymentId?: string;
   amount: string;
@@ -60,19 +60,18 @@ export const saveBridgeHistory = ({
 }): void => {
   try {
     const existingData = getBridgeHistory();
-    const existingWalletHistory = existingData[walletAddress] || [];
 
-    // Check if payment already exists for this wallet using paymentId
-    const existingIndex = existingWalletHistory.findIndex(
+    // Check if payment already exists using paymentId
+    const existingIndex = existingData.findIndex(
       (item) => item.paymentId === paymentId
     );
 
-    let updatedHistory: BridgeHistoryItem[];
+    let updatedHistory: BridgeHistoryStorage;
 
     if (existingIndex !== -1) {
       // Update existing transaction, preserving all source/destination info
-      const existing = existingWalletHistory[existingIndex];
-      updatedHistory = [...existingWalletHistory];
+      const existing = existingData[existingIndex];
+      updatedHistory = [...existingData];
       updatedHistory[existingIndex] = {
         ...existing,
         // Update fields that may have new information
@@ -81,14 +80,6 @@ export const saveBridgeHistory = ({
         sourceTxHash: sourceTxHash || existing.sourceTxHash,
         destinationTxHash: destinationTxHash || existing.destinationTxHash,
         status: status || existing.status,
-        // Preserve source and destination info (these shouldn't change)
-        sourceChainId: existing.sourceChainId,
-        sourceChainName: existing.sourceChainName,
-        sourceTokenSymbol: existing.sourceTokenSymbol,
-        destinationChainId: existing.destinationChainId,
-        destinationChainName: existing.destinationChainName,
-        destinationTokenSymbol: existing.destinationTokenSymbol,
-        destinationAddress: existing.destinationAddress,
         // Update completedAt only if status changed to completed
         completedAt:
           status === "completed" && existing.status !== "completed"
@@ -98,7 +89,7 @@ export const saveBridgeHistory = ({
     } else {
       // Create new transaction with all source and destination info
       const newTransaction: BridgeHistoryItem = {
-        id: `${walletAddress}_${Date.now()}_${paymentId}`,
+        id: `${walletAddress || "guest"}_${Date.now()}_${paymentId}`,
         paymentId,
         rozoPaymentId,
         amount,
@@ -115,17 +106,12 @@ export const saveBridgeHistory = ({
         walletAddress,
         status,
       };
-      updatedHistory = [newTransaction, ...existingWalletHistory];
+      updatedHistory = [newTransaction, ...existingData];
     }
-
-    const updatedData: BridgeHistoryStorage = {
-      ...existingData,
-      [walletAddress]: updatedHistory,
-    };
 
     localStorage.setItem(
       ROZO_BRIDGE_HISTORY_STORAGE_KEY,
-      JSON.stringify(updatedData)
+      JSON.stringify(updatedHistory)
     );
 
     // Dispatch custom event to notify listeners
@@ -143,27 +129,22 @@ const expirePendingTransactions = (
   history: BridgeHistoryStorage
 ): BridgeHistoryStorage => {
   const now = Date.now();
-  const updatedHistory: BridgeHistoryStorage = {};
   let hasChanges = false;
 
-  Object.entries(history).forEach(([walletAddress, transactions]) => {
-    const updatedTransactions = transactions.map((transaction) => {
-      if (transaction.status === "pending") {
-        const transactionTime = new Date(transaction.completedAt).getTime();
-        const timeDiff = now - transactionTime;
+  const updatedHistory = history.map((transaction) => {
+    if (transaction.status === "pending") {
+      const transactionTime = new Date(transaction.completedAt).getTime();
+      const timeDiff = now - transactionTime;
 
-        if (timeDiff > PENDING_EXPIRATION_TIME) {
-          hasChanges = true;
-          return {
-            ...transaction,
-            status: "expired" as const,
-          };
-        }
+      if (timeDiff > PENDING_EXPIRATION_TIME) {
+        hasChanges = true;
+        return {
+          ...transaction,
+          status: "expired" as const,
+        };
       }
-      return transaction;
-    });
-
-    updatedHistory[walletAddress] = updatedTransactions;
+    }
+    return transaction;
   });
 
   // Save back to localStorage if there were changes
@@ -188,48 +169,41 @@ const expirePendingTransactions = (
 export const getBridgeHistory = (): BridgeHistoryStorage => {
   try {
     const data = localStorage.getItem(ROZO_BRIDGE_HISTORY_STORAGE_KEY);
-    const parsedData = data ? JSON.parse(data) : {};
+    const parsedData: BridgeHistoryStorage = data ? JSON.parse(data) : [];
     // Automatically expire pending transactions older than 1 hour
     return expirePendingTransactions(parsedData);
   } catch {
-    return {};
+    return [];
   }
 };
 
-export const getMergedBridgeHistories = (): BridgeHistoryItem[] => {
-  const allHistory = Array.from(Object.values(getBridgeHistory())).flat();
+/**
+ * Get all bridge history sorted by date (newest first)
+ * This replaces getMergedBridgeHistories as we now have a flat structure
+ */
+export const getAllBridgeHistory = (): BridgeHistoryItem[] => {
+  const allHistory = getBridgeHistory();
 
-  // If no session history, nothing to merge
-  if (allHistory.length === 0) return [];
-
-  allHistory.forEach((sessionItem) => {
-    const existingIndex = allHistory.findIndex(
-      (item) => item.paymentId === sessionItem.paymentId
-    );
-
-    if (existingIndex === -1) {
-      // Add session item to wallet history
-      allHistory.push(sessionItem);
-    }
-  });
-
-  // Sort by date descending
-  allHistory.sort(
+  // Sort by date descending (newest first)
+  return allHistory.sort(
     (a, b) =>
       new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
   );
-
-  return allHistory;
 };
 
 /**
  * Get bridge history for a specific wallet
  */
 export const getBridgeHistoryForWallet = (
-  walletAddress: string
+  walletAddress: string | null
 ): BridgeHistoryItem[] => {
   const allHistory = getBridgeHistory();
-  const walletHistory = allHistory[walletAddress] || [];
+
+  // Filter by wallet address
+  const walletHistory = allHistory.filter(
+    (item) => item.walletAddress === walletAddress
+  );
+
   // Sort by date descending (newest first)
   return walletHistory.sort(
     (a, b) =>
@@ -238,13 +212,19 @@ export const getBridgeHistoryForWallet = (
 };
 
 /**
- * Clear bridge history for a specific wallet
+ * Clear bridge history for a specific wallet (or all if walletAddress is null)
  */
-export const clearBridgeHistoryForWallet = (walletAddress: string): void => {
+export const clearBridgeHistoryForWallet = (
+  walletAddress: string | null
+): void => {
   try {
     const existingData = getBridgeHistory();
-    const updatedData = { ...existingData };
-    delete updatedData[walletAddress];
+
+    // Filter out transactions for the specified wallet
+    const updatedData = existingData.filter(
+      (item) => item.walletAddress !== walletAddress
+    );
+
     localStorage.setItem(
       ROZO_BRIDGE_HISTORY_STORAGE_KEY,
       JSON.stringify(updatedData)
@@ -257,42 +237,14 @@ export const clearBridgeHistoryForWallet = (walletAddress: string): void => {
 };
 
 /**
- * Remove duplicate bridge payments based on paymentId
+ * Clear all bridge history
  */
-export const removeDuplicateBridgePayments = (walletAddress: string): void => {
+export const clearAllBridgeHistory = (): void => {
   try {
-    const existingData = getBridgeHistory();
-    const walletHistory = existingData[walletAddress] || [];
-
-    // Remove duplicates based on paymentId, keeping the most recent one
-    const uniquePayments = walletHistory.reduce((acc, current) => {
-      const existingIndex = acc.findIndex(
-        (item) => item.paymentId === current.paymentId
-      );
-      if (existingIndex === -1) {
-        acc.push(current);
-      } else {
-        // Keep the more recent one
-        const existing = acc[existingIndex];
-        if (new Date(current.completedAt) > new Date(existing.completedAt)) {
-          acc[existingIndex] = current;
-        }
-      }
-      return acc;
-    }, [] as BridgeHistoryItem[]);
-
-    if (uniquePayments.length !== walletHistory.length) {
-      const updatedData = {
-        ...existingData,
-        [walletAddress]: uniquePayments,
-      };
-      localStorage.setItem(
-        ROZO_BRIDGE_HISTORY_STORAGE_KEY,
-        JSON.stringify(updatedData)
-      );
-    }
+    localStorage.setItem(ROZO_BRIDGE_HISTORY_STORAGE_KEY, JSON.stringify([]));
+    window.dispatchEvent(new CustomEvent("bridge-payment-completed"));
   } catch (error) {
-    console.error("Failed to remove duplicate bridge payments:", error);
+    console.error("Failed to clear all bridge history:", error);
     throw error;
   }
 };
@@ -301,30 +253,25 @@ export const removeDuplicateBridgePayments = (walletAddress: string): void => {
  * Update bridge transaction status
  */
 export const updateBridgeTransactionStatus = (
-  walletAddress: string,
   paymentId: string,
   status: "completed" | "pending" | "failed" | "expired",
   destinationTxHash?: string
 ): void => {
   try {
     const existingData = getBridgeHistory();
-    const walletHistory = existingData[walletAddress] || [];
-    const transactionIndex = walletHistory.findIndex(
+    const transactionIndex = existingData.findIndex(
       (item) => item.paymentId === paymentId
     );
 
     if (transactionIndex !== -1) {
-      walletHistory[transactionIndex].status = status;
+      existingData[transactionIndex].status = status;
       if (destinationTxHash) {
-        walletHistory[transactionIndex].destinationTxHash = destinationTxHash;
+        existingData[transactionIndex].destinationTxHash = destinationTxHash;
       }
-      const updatedData = {
-        ...existingData,
-        [walletAddress]: walletHistory,
-      };
+
       localStorage.setItem(
         ROZO_BRIDGE_HISTORY_STORAGE_KEY,
-        JSON.stringify(updatedData)
+        JSON.stringify(existingData)
       );
       window.dispatchEvent(new CustomEvent("bridge-payment-completed"));
     }

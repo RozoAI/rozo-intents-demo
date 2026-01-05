@@ -30,7 +30,7 @@ import { BridgePayButton } from "./BridgePayButton";
 import { useBridge } from "./providers/BridgeProvider";
 import { useDestinationSelector, useSourceSelector } from "./providers/hooks";
 import { TokenSelectorTrigger } from "./token-selector/TokenSelectorTrigger";
-import { getMergedBridgeHistories } from "./utils/bridgeHistory";
+import { getAllBridgeHistory } from "./utils/bridgeHistory";
 
 export function BridgeMain() {
   const {
@@ -139,11 +139,11 @@ export function BridgeMain() {
 
   const currency = isCurrencyEUR ? TokenSymbol.EURC : TokenSymbol.USDC;
 
-  // Check if there's any history for the current user (wallet or session)
+  // Check if there's any history (all transactions, authenticated or not)
   const hasHistory = useMemo(() => {
-    const history = getMergedBridgeHistories();
+    const history = getAllBridgeHistory();
     return history.length > 0;
-  }, [stellarConnected, stellarAddress, historyUpdateTrigger]);
+  }, [historyUpdateTrigger]);
 
   const fees = useMemo(() => {
     if (isFeeLoading) {
@@ -710,7 +710,6 @@ export function BridgeMain() {
       <BridgeHistoryModal
         open={historyDialogOpen}
         onOpenChange={setHistoryDialogOpen}
-        walletAddress={stellarAddress}
       />
     </div>
   );

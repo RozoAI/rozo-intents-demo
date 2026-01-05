@@ -42,15 +42,15 @@ import {
 } from "../ui/dialog";
 import {
   BridgeHistoryItem,
-  clearBridgeHistoryForWallet,
-  getMergedBridgeHistories,
+  clearAllBridgeHistory,
+  getAllBridgeHistory,
   ROZO_BRIDGE_HISTORY_STORAGE_KEY,
 } from "./utils/bridgeHistory";
 
 interface BridgeHistoryModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  walletAddress: string;
+  walletAddress?: string | null;
 }
 
 const chainToLogo = {
@@ -77,8 +77,8 @@ export function BridgeHistoryModal({
 
   const loadHistory = useCallback(() => {
     try {
-      // First, clean up any existing duplicates
-      const bridgeHistory = getMergedBridgeHistories();
+      // Get all bridge history (flat array structure)
+      const bridgeHistory = getAllBridgeHistory();
 
       setHistory(bridgeHistory);
     } catch (error) {
@@ -86,7 +86,7 @@ export function BridgeHistoryModal({
     } finally {
       setIsLoading(false);
     }
-  }, [walletAddress]);
+  }, []);
 
   // Load history when dialog opens
   useEffect(() => {
@@ -135,7 +135,7 @@ export function BridgeHistoryModal({
 
   const handleClearHistory = () => {
     try {
-      clearBridgeHistoryForWallet(walletAddress);
+      clearAllBridgeHistory();
       setHistory([]);
     } catch (error) {
       console.error("Error clearing bridge history:", error);

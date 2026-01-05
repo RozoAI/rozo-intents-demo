@@ -66,7 +66,7 @@ export interface BridgeContextType extends BridgeState {
 
   // History management
   saveTransaction: (params: {
-    walletAddress: string;
+    walletAddress: string | null;
     paymentId: string;
     rozoPaymentId?: string;
     amount: string;
@@ -74,8 +74,8 @@ export interface BridgeContextType extends BridgeState {
     destinationTxHash?: string;
     status?: "completed" | "pending" | "failed";
   }) => void;
-  getTransactionHistory: (walletAddress: string) => BridgeHistoryItem[];
-  clearTransactionHistory: (walletAddress: string) => void;
+  getTransactionHistory: (walletAddress: string | null) => BridgeHistoryItem[];
+  clearTransactionHistory: (walletAddress: string | null) => void;
 }
 
 const BridgeContext = createContext<BridgeContextType | null>(null);
@@ -435,7 +435,7 @@ export function BridgeProvider({
   // Save bridge transaction to history
   const saveTransaction = useCallback(
     (params: {
-      walletAddress: string;
+      walletAddress: string | null;
       paymentId: string;
       rozoPaymentId?: string;
       amount: string;
@@ -482,22 +482,25 @@ export function BridgeProvider({
     ]
   );
 
-  // Get transaction history for a wallet
+  // Get transaction history for a wallet (or all if walletAddress is null)
   const getTransactionHistory = useCallback(
-    (walletAddress: string): BridgeHistoryItem[] => {
+    (walletAddress: string | null): BridgeHistoryItem[] => {
       return getBridgeHistoryForWallet(walletAddress);
     },
     []
   );
 
-  // Clear transaction history for a wallet
-  const clearTransactionHistory = useCallback((walletAddress: string) => {
-    try {
-      clearBridgeHistoryForWallet(walletAddress);
-    } catch (error) {
-      console.error("Failed to clear bridge transaction history:", error);
-    }
-  }, []);
+  // Clear transaction history for a wallet (or all if walletAddress is null)
+  const clearTransactionHistory = useCallback(
+    (walletAddress: string | null) => {
+      try {
+        clearBridgeHistoryForWallet(walletAddress);
+      } catch (error) {
+        console.error("Failed to clear bridge transaction history:", error);
+      }
+    },
+    []
+  );
 
   const contextValue: BridgeContextType = useMemo(
     () => ({

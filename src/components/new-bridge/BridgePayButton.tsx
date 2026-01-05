@@ -78,7 +78,7 @@ export function BridgePayButton({
   // Extract referral code from URL query parameter
   const referralCode = searchParams.get("ref");
 
-  // Get wallet address based on source chain
+  // Get wallet address based on source chain (returns null for unauthenticated users)
   const getWalletAddress = useCallback((): string | null => {
     if (!bridge.sourceChain) return null;
 
@@ -92,6 +92,7 @@ export function BridgePayButton({
       return evmAddress;
     }
 
+    // Return null for unauthenticated users (no fallback to timestamp)
     return null;
   }, [
     bridge.sourceChain,
@@ -128,10 +129,9 @@ export function BridgePayButton({
             duration: 5000,
           });
           const walletAddress = getWalletAddress();
-          const identifier = walletAddress || new Date().getTime().toString();
 
           bridge.saveTransaction({
-            walletAddress: identifier,
+            walletAddress,
             paymentId: event.paymentId,
             rozoPaymentId: event.rozoPaymentId,
             amount: amount,
@@ -143,7 +143,7 @@ export function BridgePayButton({
         }
       }
     },
-    [amount]
+    [amount, isBridgeStateValid, getWalletAddress, bridge]
   );
 
   // Handle payout completed
@@ -157,10 +157,9 @@ export function BridgePayButton({
           });
 
           const walletAddress = getWalletAddress();
-          const identifier = walletAddress || new Date().getTime().toString();
 
           bridge.saveTransaction({
-            walletAddress: identifier,
+            walletAddress,
             paymentId: event.paymentId,
             rozoPaymentId: event.rozoPaymentId,
             amount: amount,
@@ -182,7 +181,7 @@ export function BridgePayButton({
         }
       }
     },
-    [amount]
+    [amount, isBridgeStateValid, getWalletAddress, bridge, checkTrustline, queryClient]
   );
 
   const intentConfig: PayParams | null = useMemo(() => {
