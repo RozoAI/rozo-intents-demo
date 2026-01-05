@@ -41,7 +41,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           stellarKit={stellarKit}
           stellarWalletPersistence={false}
           mode={resolvedTheme === "dark" ? "dark" : "light"}
-          debugMode={true}
+          debugMode={false}
         >
           <StellarWalletRozoSync>{children}</StellarWalletRozoSync>
           <Toaster

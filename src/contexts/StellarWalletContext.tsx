@@ -69,6 +69,13 @@ interface StellarWalletContextType {
   checkXlmBalance: () => Promise<void>;
   selectedWallet: ISupportedWallet | null;
 
+  // External wallet sync
+  syncExternalWallet: (
+    address: string,
+    walletName?: string,
+    wallet?: ISupportedWallet | null
+  ) => void;
+
   // Error management
   stellarError: string | null;
   setStellarError: (error: string | null) => void;
@@ -712,6 +719,30 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
     clearStoredWallet(); // Clear stored wallet data on disconnect
   };
 
+  // Sync external wallet state (e.g., from intent-pay)
+  const syncExternalWallet = (
+    address: string,
+    walletName?: string,
+    wallet?: ISupportedWallet | null
+  ) => {
+    if (address) {
+      setStellarAddress(address);
+      setStellarConnected(true);
+      if (walletName) {
+        setStellarWalletName(walletName);
+      }
+      if (wallet) {
+        setSelectedWallet(wallet);
+      }
+    } else {
+      // Clear when address is empty
+      setStellarAddress("");
+      setStellarConnected(false);
+      setStellarWalletName(null);
+      setSelectedWallet(null);
+    }
+  };
+
   return (
     <StellarWalletContext.Provider
       value={{
@@ -734,6 +765,8 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
         xlmBalance,
         checkXlmBalance,
         selectedWallet,
+        // External wallet sync
+        syncExternalWallet,
         stellarError,
         setStellarError,
       }}
