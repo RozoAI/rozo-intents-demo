@@ -9,9 +9,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   Clock,
-  DollarSign,
   Loader2,
-  Zap,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -203,7 +201,7 @@ export default function StatusPage() {
             </div>
           ) : data ? (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <MetricCard
                   title="Last 50 Transactions"
                   value={
@@ -236,7 +234,7 @@ export default function StatusPage() {
                   value={data.last_50_txs?.green_count || 0}
                   icon={Zap}
                 />
-              </div>
+              </div> */}
 
               {/* Transaction Timeline Chart */}
               {data.txs && data.txs.length > 0 && (
