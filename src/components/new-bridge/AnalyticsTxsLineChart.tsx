@@ -79,7 +79,7 @@ export function AnalyticsTxsLineChart({ txs }: AnalyticsTxsLineChartProps) {
                   <TooltipContent side="top" className="text-xs">
                     <div>
                       <div>{dateTime}</div>
-                      <div>Execution: {tx.duration}s</div>
+                      {tx.duration && <div>Execution: {tx.duration}s</div>}
                     </div>
                   </TooltipContent>
                 </Tooltip>

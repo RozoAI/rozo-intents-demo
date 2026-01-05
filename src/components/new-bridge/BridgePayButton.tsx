@@ -16,6 +16,7 @@ import { RozoPayButton, useRozoPayUI } from "@rozoai/intent-pay";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useAccount } from "wagmi";
 import { Button } from "../ui/button";
@@ -71,7 +72,11 @@ export function BridgePayButton({
     useStellarWallet();
   const { address: evmAddress, isConnected: evmConnected } = useAccount();
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
   const [isPreparingPayment, setIsPreparingPayment] = useState(false);
+
+  // Extract referral code from URL query parameter
+  const referralCode = searchParams.get("ref");
 
   // Get wallet address based on source chain
   const getWalletAddress = useCallback((): string | null => {
@@ -221,6 +226,7 @@ export function BridgePayButton({
       intent,
       metadata: {
         intent,
+        ...(referralCode && { referral: referralCode }),
         items: [
           {
             name: "ROZO Intents",
