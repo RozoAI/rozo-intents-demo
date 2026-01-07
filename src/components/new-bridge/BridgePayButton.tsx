@@ -35,7 +35,7 @@ interface PayParams {
    */
   toUnits?: string;
   /** The final EVM address to transfer to or contract to call. */
-  toAddress?: string;
+  toAddress: string;
   /** The intent verb, such as Pay, Deposit, or Purchase. Default: Pay */
   intent?: string;
   /** Payment options. By default, all are enabled. */
@@ -181,7 +181,14 @@ export function BridgePayButton({
         }
       }
     },
-    [amount, isBridgeStateValid, getWalletAddress, bridge, checkTrustline, queryClient]
+    [
+      amount,
+      isBridgeStateValid,
+      getWalletAddress,
+      bridge,
+      checkTrustline,
+      queryClient,
+    ]
   );
 
   const intentConfig: PayParams | null = useMemo(() => {
@@ -248,9 +255,9 @@ export function BridgePayButton({
 
   useEffect(() => {
     const preparePayment = async () => {
+      console.log("[BridgePayButton] intentConfig", intentConfig);
       if (intentConfig && parseFloat(intentConfig.toUnits || "0") > 0) {
         setIsPreparingPayment(true);
-
         try {
           await resetPayment(intentConfig as any);
         } catch (error) {
@@ -290,14 +297,14 @@ export function BridgePayButton({
     );
   }
 
-  if (bridge.destinationAddress === null) {
+  if (bridge.destinationAddress === null || !bridge.isDestinationAddressValid) {
     return (
       <Button
         size="lg"
         className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl cursor-pointer"
         disabled
       >
-        Enter a destination address to continue
+        Enter a valid destination address to continue
       </Button>
     );
   }
@@ -343,7 +350,7 @@ export function BridgePayButton({
       appId={intentConfig.appId}
       toChain={intentConfig.toChain}
       toToken={intentConfig.toToken}
-      toAddress={intentConfig.toAddress || ""}
+      toAddress={intentConfig.toAddress}
       toUnits={intentConfig.toUnits}
       metadata={intentConfig.metadata || undefined}
       feeType={intentConfig.feeType}
