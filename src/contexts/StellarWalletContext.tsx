@@ -3,15 +3,12 @@
 import { EURC_ASSET, USDC_ASSET } from "@/lib/stellar";
 import { setupCryptoPolyfill } from "@/utils/polyfills";
 import {
-  AlbedoModule,
   allowAllModules,
   FREIGHTER_ID,
-  HotWalletModule,
   ISupportedWallet,
   LOBSTR_ID,
   StellarWalletsKit,
   WalletNetwork,
-  xBullModule,
 } from "@creit.tech/stellar-wallets-kit";
 import {
   WalletConnectAllowedMethods,
@@ -31,7 +28,6 @@ import {
   ReactNode,
   useContext,
   useEffect,
-  useRef,
   useState,
 } from "react";
 import { toast } from "sonner";
@@ -87,6 +83,32 @@ const StellarWalletContext = createContext<
 
 const STORAGE_KEY = "rozo-stellar-wallet";
 
+// Helper function to initialize StellarWalletsKit only in browser environment
+const createStellarKit = (): StellarWalletsKit | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return new StellarWalletsKit({
+    network: WalletNetwork.PUBLIC,
+    selectedWalletId: FREIGHTER_ID,
+    modules: [
+      ...allowAllModules(),
+      new WalletConnectModule({
+        url: window.location.origin,
+        projectId: "7440dd8acf85933ffcc775ec6675d4a9",
+        method: WalletConnectAllowedMethods.SIGN_AND_SUBMIT,
+        description: "ROZO Intents - Transfer USDC across chains",
+        name: "ROZO Intents",
+        icons: [
+          "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/fdfef53e-91c2-4abc-aec0-6902a26d6c00/80x",
+        ],
+        network: WalletNetwork.PUBLIC,
+      }),
+    ],
+  });
+};
+
 interface StoredWalletData {
   publicKey: string; // The public key of the wallet (address)
   walletId: string; // e.g. "freighter"
@@ -141,8 +163,6 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
     balance: "0",
     checking: false,
   });
-
-  const kitRef = useRef<StellarWalletsKit | null>(null);
 
   // Load stored wallet data from localStorage
   const loadStoredWallet = (): StoredWalletData | null => {
@@ -515,43 +535,12 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
     // Setup crypto polyfill for mobile browsers
     setupCryptoPolyfill();
 
-    // Detect if on mobile device
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-    // Create modules array - include WalletConnect for mobile
-    const walletConnectProjectId =
-      process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ||
-      "7440dd8acf85933ffcc775ec6675d4a9";
-
-    const modules = [
-      ...(!isMobile
-        ? allowAllModules()
-        : [new AlbedoModule(), new HotWalletModule(), new xBullModule()]),
-      new WalletConnectModule({
-        url:
-          typeof window !== "undefined"
-            ? window.location.origin
-            : "https://intents.rozo.ai",
-        projectId: walletConnectProjectId,
-        method: WalletConnectAllowedMethods.SIGN,
-        description: "ROZO Intents - Transfer USDC across chains",
-        name: "ROZO Intents",
-        icons: [
-          "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/fdfef53e-91c2-4abc-aec0-6902a26d6c00/80x",
-        ],
-        network: WalletNetwork.PUBLIC,
-      }),
-    ];
-
-    if (typeof window !== "undefined" && !kitRef.current) {
-      const kit = new StellarWalletsKit({
-        network: WalletNetwork.PUBLIC,
-        selectedWalletId: isMobile ? undefined : FREIGHTER_ID,
-        modules,
-      });
-      kitRef.current = kit;
+    // Initialize StellarWalletsKit only in browser
+    const kit = createStellarKit();
+    if (kit) {
       setStellarKit(kit);
     }
+
     setIsInitialized(true);
   }, []);
 
