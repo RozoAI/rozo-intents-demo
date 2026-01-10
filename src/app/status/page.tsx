@@ -201,41 +201,6 @@ export default function StatusPage() {
             </div>
           ) : data ? (
             <>
-              {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <MetricCard
-                  title="Last 50 Transactions"
-                  value={
-                    data.last_50_txs?.total_payments.toLocaleString("en-US") ||
-                    "0"
-                  }
-                  icon={Activity}
-                />
-                <MetricCard
-                  title="Volume"
-                  value={`$${
-                    data.last_50_txs?.total_volume_usdc.toLocaleString(
-                      "en-US",
-                      {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      }
-                    ) || "0"
-                  }`}
-                  icon={DollarSign}
-                />
-                <MetricCard
-                  title="Avg Response Time"
-                  value={data.last_50_txs?.avg_seconds || 0}
-                  icon={Clock}
-                  suffix="s"
-                />
-                <MetricCard
-                  title="Fast Transactions"
-                  value={data.last_50_txs?.green_count || 0}
-                  icon={Zap}
-                />
-              </div> */}
-
               {/* Transaction Timeline Chart */}
               {data.txs && data.txs.length > 0 && (
                 <div className="bg-card border rounded-xl p-6">

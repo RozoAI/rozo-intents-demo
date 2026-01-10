@@ -52,7 +52,7 @@ export function AnalyticsCard() {
                 <span className="text-[10px] md:text-xs">Avg Time</span>
               </div>
               <p className="text-base sm:text-lg font-semibold">
-                {data?.last_50_txs?.avg_seconds}s
+                {data?.last_50_txs?.median_seconds}s
               </p>
             </div>
           </div>

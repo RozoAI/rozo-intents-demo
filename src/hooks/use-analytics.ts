@@ -23,6 +23,7 @@ export interface AnalyticsData {
     yellow_count: number;
     red_count: number;
     avg_seconds: number;
+    median_seconds: number;
   };
   txs: {
     timestamp: string;
