@@ -8,7 +8,6 @@ import { RozoPayProvider, RozoWagmiProvider } from "@rozoai/intent-pay";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useTheme } from "next-themes";
 import { useState } from "react";
-import { StellarWalletRozoSync } from "./new-bridge/providers/StellarWalletRozoSync";
 
 // Setup polyfill immediately for mobile browsers
 if (typeof window !== "undefined") {
@@ -43,7 +42,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
           mode={resolvedTheme === "dark" ? "dark" : "light"}
           debugMode={false}
         >
-          <StellarWalletRozoSync>{children}</StellarWalletRozoSync>
+          {/* <StellarWalletRozoSync> */}
+          {children}
+          {/* </StellarWalletRozoSync> */}
           <Toaster
             position="bottom-center"
             toastOptions={{
