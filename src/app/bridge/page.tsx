@@ -33,7 +33,7 @@ export default function NewPage() {
             target="_blank"
           >
             <Trophy className="size-4" />
-            Wave 2 Leaderboard!
+            Bonus Leaderboard!
           </Link>
         </div>
         <BridgeMain />
