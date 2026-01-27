@@ -26,7 +26,7 @@ export default function NewPage() {
   return (
     <BridgeProvider>
       <div className="flex flex-col items-center gap-6 w-full">
-        <div className="w-full rounded-md bg-primary py-2 px-4 text-white text-center">
+        <div className="w-full rounded-md bg-primary py-2 px-4 text-primary-foreground text-center">
           <Link
             href={`https://app.rozo.ai/leaderboard${stellarConnected && stellarAddress ? `?address=${stellarAddress}` : ""}`}
             className="flex items-center justify-center gap-2 text-sm font-medium"

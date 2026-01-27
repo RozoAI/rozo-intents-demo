@@ -143,7 +143,7 @@ export function BridgePayButton({
         }
       }
     },
-    [amount, isBridgeStateValid, getWalletAddress, bridge]
+    [amount, isBridgeStateValid, getWalletAddress, bridge],
   );
 
   // Handle payout completed
@@ -188,7 +188,7 @@ export function BridgePayButton({
       bridge,
       checkTrustline,
       queryClient,
-    ]
+    ],
   );
 
   const intentConfig: PayParams | null = useMemo(() => {
@@ -265,7 +265,7 @@ export function BridgePayButton({
         } finally {
           setTimeout(() => {
             setIsPreparingPayment(false);
-          }, 500);
+          }, 1000);
         }
       }
     };
