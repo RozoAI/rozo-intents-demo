@@ -6,7 +6,6 @@ import {
   allowAllModules,
   FREIGHTER_ID,
   ISupportedWallet,
-  LOBSTR_ID,
   StellarWalletsKit,
   WalletNetwork,
 } from "@creit.tech/stellar-wallets-kit";
@@ -26,8 +25,10 @@ import { useSearchParams } from "next/navigation";
 import {
   createContext,
   ReactNode,
+  useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { toast } from "sonner";
@@ -70,6 +71,11 @@ interface StellarWalletContextType {
     address: string,
     walletName?: string,
     wallet?: ISupportedWallet | null
+  ) => void;
+
+  /** Register SDK setConnector so connect flow uses it (avoids double confirmation). Set by component inside RozoPayProvider. */
+  registerSetConnector: (
+    fn: ((wallet: ISupportedWallet) => Promise<void>) | null
   ) => void;
 
   // Error management
@@ -129,12 +135,21 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
   const [stellarConnected, setStellarConnected] = useState(false);
   const [stellarConnecting, setStellarConnecting] = useState(false);
   const [stellarKit, setStellarKit] = useState<StellarWalletsKit | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
   const [stellarWalletName, setStellarWalletName] = useState<string | null>(
     null
   );
   const [selectedWallet, setSelectedWallet] = useState<ISupportedWallet | null>(
     null
+  );
+
+  const setConnectorRef = useRef<
+    ((wallet: ISupportedWallet) => Promise<void>) | null
+  >(null);
+  const registerSetConnector = useCallback(
+    (fn: ((wallet: ISupportedWallet) => Promise<void>) | null) => {
+      setConnectorRef.current = fn;
+    },
+    []
   );
 
   const [trustlineStatus, setTrustlineStatus] = useState<TrustlineStatus>({
@@ -163,30 +178,6 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
     balance: "0",
     checking: false,
   });
-
-  // Load stored wallet data from localStorage
-  const loadStoredWallet = (): StoredWalletData | null => {
-    // try {
-    //   const stored = localStorage.getItem(STORAGE_KEY);
-    //   if (!stored) return null;
-
-    //   const wallets = JSON.parse(stored) as StoredWalletData[];
-    //   const data = wallets[wallets.length - 1];
-
-    //   // Check if data is not too old (24 hours)
-    //   const MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-    //   if (Date.now() - new Date(data.timestamp).getTime() > MAX_AGE) {
-    //     localStorage.removeItem(STORAGE_KEY);
-    //     return null;
-    //   }
-
-    //   return data;
-    // } catch (error) {
-    //   console.error("Error loading stored wallet:", error);
-    //   localStorage.removeItem(STORAGE_KEY);
-    return null;
-    // }
-  };
 
   // Save wallet data to localStorage
   // const saveWalletData = (
@@ -540,48 +531,10 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
     if (kit) {
       setStellarKit(kit);
     }
-
-    setIsInitialized(true);
   }, []);
 
-  // Auto-reconnect on initialization
-  useEffect(() => {
-    if (!isInitialized || !stellarKit) return;
-
-    const autoReconnect = async () => {
-      const storedData = loadStoredWallet();
-      if (!storedData) return;
-
-      try {
-        // Set the previously used wallet
-        stellarKit.setWallet(storedData.walletId);
-
-        // Small delay for wallet to initialize
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        // Try to reconnect
-        const publicKey = await stellarKit.getAddress();
-        const address =
-          typeof publicKey === "string"
-            ? publicKey
-            : (publicKey as { address?: string }).address;
-
-        if (address && address === storedData.publicKey) {
-          setStellarAddress(address);
-          setStellarConnected(true);
-          setStellarWalletName(storedData.walletName);
-        } else {
-          // Address mismatch or connection failed, clear stored data
-          clearStoredWallet();
-        }
-      } catch {
-        // Clear stored data if auto-reconnect fails
-        clearStoredWallet();
-      }
-    };
-
-    autoReconnect();
-  }, [isInitialized, stellarKit]);
+  // Auto-reconnect: rely on SDK stellarWalletPersistence when enabled, or sync from Rozo.
+  // Do not call stellarKit.setWallet/getAddress here – use setConnector in a component under RozoPayProvider.
 
   // Check balances when wallet connects or currency changes
   // Use unified function to make a single account request instead of multiple
@@ -618,85 +571,43 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const setConnector = setConnectorRef.current;
+    if (!setConnector) {
+      toast.error("Stellar connect not ready. Please refresh.");
+      return;
+    }
+
     setStellarConnecting(true);
 
-    // Check if on mobile
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
     try {
-      // Show wallet selection modal
       await stellarKit.openModal({
         modalTitle: "Select Stellar Wallet",
         onWalletSelected: async (option: ISupportedWallet) => {
-          stellarKit.setWallet(option.id);
-          setSelectedWallet(option);
-
-          // Add a small delay for mobile wallets to initialize
-          if (isMobile) {
-            await new Promise((resolve) => setTimeout(resolve, 500));
-          }
-
           try {
-            const publicKey = await stellarKit.getAddress();
-
-            // Handle both string and object response formats
-            const address =
-              typeof publicKey === "string"
-                ? publicKey
-                : (publicKey as { address?: string }).address;
-
-            if (!address) {
-              throw new Error("No address received from wallet");
-            }
-
-            setStellarAddress(address);
-            setStellarConnected(true);
-            // Save wallet data for auto-reconnect
-            // saveWalletData(address, option.id, option.name);
-            setStellarWalletName(option.name);
+            await setConnector(option);
             toast.success(`Connected to ${option.name}`);
           } catch (error: unknown) {
-            console.error("Error connecting to wallet:", error);
-
-            // Provide more helpful error messages
-            if (isMobile) {
-              if (option.id === LOBSTR_ID) {
-                toast.error(
-                  "Could not connect to LOBSTR. Please ensure the app is installed and you have enabled wallet connections in the app settings."
-                );
-              } else {
-                toast.error(
-                  `Could not connect to ${option.name}. Please ensure the app is installed and running.`
-                );
-              }
+            console.error("Error connecting to Stellar wallet:", error);
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            if (
+              errorMessage.includes("not found") ||
+              errorMessage.includes("not installed")
+            ) {
+              toast.error(
+                `${option.name} wallet extension not found. Please install it first.`
+              );
             } else {
-              // Check for specific error types
-              const errorMessage =
-                error instanceof Error ? error.message : String(error);
-              if (
-                errorMessage.includes("not found") ||
-                errorMessage.includes("not installed")
-              ) {
-                toast.error(
-                  `${option.name} wallet extension not found. Please install it first.`
-                );
-              } else {
-                toast.error("Failed to connect. Please try again.");
-              }
+              toast.error("Failed to connect. Please try again.");
             }
+          } finally {
+            setStellarConnecting(false);
           }
         },
       });
     } catch (error) {
       console.error("Error connecting to Stellar wallet:", error);
-
-      if (isMobile) {
-        toast.error(
-          "Failed to connect. Please ensure your wallet app is installed and configured."
-        );
-      } else {
-        toast.error("Failed to connect to Stellar wallet");
-      }
+      toast.error("Failed to connect to Stellar wallet");
     } finally {
       setStellarConnecting(false);
     }
@@ -756,6 +667,7 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
         selectedWallet,
         // External wallet sync
         syncExternalWallet,
+        registerSetConnector,
         stellarError,
         setStellarError,
       }}

@@ -2,6 +2,8 @@
 
 import { Toaster } from "@/components/ui/sonner";
 import { useStellarWallet } from "@/contexts/StellarWalletContext";
+import { RegisterRozoSetConnector } from "@/components/new-bridge/providers/RegisterRozoSetConnector";
+import { StellarWalletRozoSync } from "@/components/new-bridge/providers/StellarWalletRozoSync";
 import { config } from "@/lib/wagmi";
 import { setupCryptoPolyfill } from "@/utils/polyfills";
 import { RozoPayProvider, RozoWagmiProvider } from "@rozoai/intent-pay";
@@ -42,9 +44,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
           mode={resolvedTheme === "dark" ? "dark" : "light"}
           debugMode={false}
         >
-          {/* <StellarWalletRozoSync> */}
-          {children}
-          {/* </StellarWalletRozoSync> */}
+          <RegisterRozoSetConnector />
+          <StellarWalletRozoSync>
+            {children}
+          </StellarWalletRozoSync>
           <Toaster
             position="bottom-center"
             toastOptions={{

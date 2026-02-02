@@ -13,7 +13,7 @@ export function StellarWalletRozoSync({
     selectedWallet,
     syncExternalWallet,
   } = useStellarWallet();
-  const { isConnected, publicKey, connector, setConnector, setPublicKey } =
+  const { isConnected, publicKey, connector, setConnector, disconnect } =
     useRozoConnectStellar();
 
   // Use refs to track previous values and prevent infinite loops
@@ -24,7 +24,7 @@ export function StellarWalletRozoSync({
   });
   const prevExternalState = useRef({ isConnected, publicKey, connector });
 
-  // Sync from internal context to external kit (intent-pay)
+  // Sync from internal context to external kit (intent-pay). Only call setConnector when external is not already connected to the same wallet (avoids infinite confirmation loop).
   useEffect(() => {
     const hasInternalChanged =
       prevInternalState.current.stellarAddress !== stellarAddress ||
@@ -32,15 +32,18 @@ export function StellarWalletRozoSync({
       prevInternalState.current.selectedWallet !== selectedWallet;
 
     if (hasInternalChanged) {
-      if (stellarConnected && stellarAddress) {
-        // Internal wallet connected - sync to external kit
-        setPublicKey(stellarAddress);
-        if (selectedWallet) {
+      if (stellarConnected && stellarAddress && selectedWallet) {
+        const alreadySame =
+          isConnected &&
+          connector?.id === selectedWallet.id &&
+          publicKey === stellarAddress;
+        if (!alreadySame) {
           setConnector(selectedWallet);
         }
       } else if (!stellarConnected && !stellarAddress) {
-        // Internal wallet disconnected - clear external kit
-        setPublicKey(undefined as any);
+        if (isConnected || publicKey) {
+          disconnect();
+        }
       }
 
       prevInternalState.current = {
@@ -53,8 +56,11 @@ export function StellarWalletRozoSync({
     stellarConnected,
     stellarAddress,
     selectedWallet,
-    setPublicKey,
+    isConnected,
+    publicKey,
+    connector?.id,
     setConnector,
+    disconnect,
   ]);
 
   // Sync from external kit (intent-pay) to internal context
