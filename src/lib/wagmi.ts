@@ -15,15 +15,6 @@ import {
   sepolia,
 } from "wagmi/chains";
 
-// Get WalletConnect project ID from environment
-const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
-
-if (!projectId) {
-  console.warn(
-    "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is not set. WalletConnect will not work properly."
-  );
-}
-
 // World Chain definition (if not available in wagmi/chains)
 const worldChain = {
   id: 480,
@@ -83,7 +74,8 @@ export const config = createConfig(
     appName: "ROZO Intents",
     appDescription: "Intent-based USDC transfers between Base and Stellar",
     appUrl: "https://intents.rozo.ai",
-    appIcon: "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/fdfef53e-91c2-4abc-aec0-6902a26d6c00/80x",
+    appIcon:
+      "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/fdfef53e-91c2-4abc-aec0-6902a26d6c00/80x",
     chains: requiredChains,
     ssr: true,
   })

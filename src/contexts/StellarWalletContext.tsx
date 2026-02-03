@@ -103,7 +103,10 @@ const createStellarKit = (): StellarWalletsKit | null => {
       new WalletConnectModule({
         url: window.location.origin,
         projectId: "7440dd8acf85933ffcc775ec6675d4a9",
-        method: WalletConnectAllowedMethods.SIGN_AND_SUBMIT,
+        // Use SIGN so wallets only need to support stellar_signXDR.
+        // The kit / SDK will handle submission, avoiding unsupported
+        // stellar_signAndSubmitXDR requests that cause WC errors.
+        method: WalletConnectAllowedMethods.SIGN,
         description: "ROZO Intents - Transfer USDC across chains",
         name: "ROZO Intents",
         icons: [

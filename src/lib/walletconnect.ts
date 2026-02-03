@@ -3,13 +3,14 @@ import { SessionTypes } from "@walletconnect/types";
 
 // WalletConnect configuration with both EVM and Stellar namespaces
 export const WALLETCONNECT_CONFIG = {
-  projectId:
-    process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "dummy-project-id",
+  projectId: "7440dd8acf85933ffcc775ec6675d4a9",
   metadata: {
     name: "ROZO Intents",
     description: "Intent-based USDC transfers between Base and Stellar",
     url: "https://intents.rozo.ai",
-    icons: ["https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/fdfef53e-91c2-4abc-aec0-6902a26d6c00/80x"],
+    icons: [
+      "https://imagedelivery.net/AKLvTMvIg6yc9W08fHl1Tg/fdfef53e-91c2-4abc-aec0-6902a26d6c00/80x",
+    ],
   },
   // Required namespaces for both EVM and Stellar
   requiredNamespaces: {
