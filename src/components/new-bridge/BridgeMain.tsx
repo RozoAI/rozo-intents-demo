@@ -20,7 +20,6 @@ import { AmountLimitWarning } from "./AmountLimitWarning";
 import { BridgeCard } from "./BridgeCard";
 import { BridgeSwapButton } from "./BridgeSwapButton";
 import { DestinationAddressInput } from "./DestinationAddressInput";
-import { MemoInput } from "./MemoInput";
 import { StellarAddressInput } from "./StellarAddressInput";
 import { TokenAmountInput } from "./TokenAmountInput";
 
@@ -53,7 +52,7 @@ export function BridgeMain() {
   const [fromAmount, setFromAmount] = useState<string | undefined>("");
   const [toAmount, setToAmount] = useState<string | undefined>("");
   const [debouncedAmount, setDebouncedAmount] = useState<string | undefined>(
-    ""
+    "",
   );
   const [isSwitched, setIsSwitched] = useState(false);
   const [balanceError, setBalanceError] = useState<string>("");
@@ -64,7 +63,7 @@ export function BridgeMain() {
   const [historyUpdateTrigger, setHistoryUpdateTrigger] = useState(0);
   // Destination chain for withdrawal (default to Base)
   const [destinationChainId, setDestinationChainId] = useState<number>(
-    base.chainId
+    base.chainId,
   );
   // State for destination address popover
   const [destinationAddressPopoverOpen, setDestinationAddressPopoverOpen] =
@@ -91,7 +90,7 @@ export function BridgeMain() {
 
   const isCurrencyEUR = useMemo(
     () => stellarCurrency === "EURC",
-    [stellarCurrency]
+    [stellarCurrency],
   );
 
   const searchParams = useSearchParams();
@@ -105,7 +104,7 @@ export function BridgeMain() {
 
   const hasEnoughXLM = useMemo(
     () => parseFloat(xlmBalance.balance) >= 1.5,
-    [xlmBalance.balance]
+    [xlmBalance.balance],
   );
 
   // Determine appId based on isAdmin
@@ -113,8 +112,8 @@ export function BridgeMain() {
     stellarCurrency === "EURC"
       ? "rozoEURC"
       : isAdmin
-      ? "rozoBridgeStellarAdmin"
-      : DEFAULT_INTENT_PAY_CONFIG.appId;
+        ? "rozoBridgeStellarAdmin"
+        : DEFAULT_INTENT_PAY_CONFIG.appId;
 
   // Fetch fee from API using debounced amount
   const {
@@ -131,7 +130,7 @@ export function BridgeMain() {
     {
       enabled: !!debouncedAmount && parseFloat(debouncedAmount) > 0,
       debounceMs: 0,
-    }
+    },
   );
 
   // Extract fee error details
@@ -192,7 +191,7 @@ export function BridgeMain() {
       return String(
         feeType === FeeType.ExactIn
           ? validFeeData.amountOut
-          : validFeeData.amountIn
+          : validFeeData.amountIn,
       );
     }
 
@@ -292,7 +291,7 @@ export function BridgeMain() {
     return () => {
       window.removeEventListener(
         "bridge-payment-completed",
-        handleHistoryUpdate
+        handleHistoryUpdate,
       );
     };
   }, []);
@@ -368,7 +367,7 @@ export function BridgeMain() {
         setDestinationAddress(address);
       }
     },
-    [setDestinationAddress]
+    [setDestinationAddress],
   );
 
   // Handle trustline status change - only set address if valid and trustline exists
@@ -391,7 +390,7 @@ export function BridgeMain() {
 
       setDestinationAddress(address);
     },
-    []
+    [],
   );
 
   // Validate balance when amount changes and user is bridging from Stellar
@@ -416,8 +415,8 @@ export function BridgeMain() {
                 {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
-                }
-              )} ${sourceToken?.symbol}`
+                },
+              )} ${sourceToken?.symbol}`,
             );
           } else {
             setBalanceError("");
@@ -679,11 +678,11 @@ export function BridgeMain() {
               onErrorChange={handleManualAddressErrorChange}
             />
             {/* Show memo input only if address is valid and trustline exists */}
-            {destinationAddress &&
+            {/* {destinationAddress &&
               isDestinationAddressValid &&
               !addressError && (
                 <MemoInput value={memo} onChange={setMemo} className="mt-4" />
-              )}
+              )} */}
           </div>
         ) : null}
 
