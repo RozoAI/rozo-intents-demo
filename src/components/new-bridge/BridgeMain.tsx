@@ -677,10 +677,6 @@ export function BridgeMain() {
               error={addressError}
               onErrorChange={handleManualAddressErrorChange}
             />
-            <p className="text-xs text-muted-foreground mt-2">
-              Please only send to self-hosted wallets. Withdrawing to exchanges
-              (e.g. Binance) requires a memo, which is not supported yet.
-            </p>
             {/* Show memo input only if address is valid and trustline exists */}
             {/* {destinationAddress &&
               isDestinationAddressValid &&

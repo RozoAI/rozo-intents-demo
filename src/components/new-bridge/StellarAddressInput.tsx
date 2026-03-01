@@ -3,7 +3,7 @@
 import { checkTokenTrustline, isContractAddress } from "@/lib/stellar";
 import { cn } from "@/lib/utils";
 import { isValidStellarAddress } from "@rozoai/intent-common";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle, Info, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Stellar } from "../icons/chains";
 import {
@@ -25,7 +25,7 @@ interface StellarAddressInputProps {
   onTrustlineStatusChange?: (
     address: string,
     exists: boolean,
-    balance: string
+    balance: string,
   ) => void;
   error?: string;
   onErrorChange?: (error: string) => void;
@@ -82,7 +82,7 @@ export function StellarAddressInput({
 
         if (!result.exists) {
           onErrorChange?.(
-            `This Stellar address doesn't have a ${currency} trustline. The recipient needs to create one first.`
+            `This Stellar address doesn't have a ${currency} trustline. The recipient needs to create one first.`,
           );
         } else {
           onErrorChange?.("");
@@ -92,13 +92,13 @@ export function StellarAddressInput({
         setTrustlineExists(false);
         onTrustlineStatusChange?.(address, false, "0");
         onErrorChange?.(
-          "Failed to check trustline. Please verify the address is correct."
+          "Failed to check trustline. Please verify the address is correct.",
         );
       } finally {
         setIsCheckingTrustline(false);
       }
     },
-    [currency, onTrustlineStatusChange, onErrorChange]
+    [currency, onTrustlineStatusChange, onErrorChange],
   );
 
   // Re-check trustline when currency changes (if address is already entered)
@@ -144,7 +144,7 @@ export function StellarAddressInput({
 
         if (!result.exists) {
           onErrorChange?.(
-            `This Stellar address doesn't have a ${currency} trustline. The recipient needs to create one first.`
+            `This Stellar address doesn't have a ${currency} trustline. The recipient needs to create one first.`,
           );
         } else {
           onErrorChange?.("");
@@ -155,7 +155,7 @@ export function StellarAddressInput({
         setTrustlineExists(false);
         onTrustlineStatusChange?.(address, false, "0");
         onErrorChange?.(
-          "Failed to check trustline. Please verify the address is correct."
+          "Failed to check trustline. Please verify the address is correct.",
         );
       } finally {
         if (!cancelled) {
@@ -259,12 +259,12 @@ export function StellarAddressInput({
               "rounded-xl bg-background",
               error
                 ? "border-red-500 focus-visible:border-red-500 dark:border-red-500 dark:focus-visible:border-red-500"
-                : ""
+                : "",
             )}
           >
             <InputGroupTextarea
               id="stellar-address"
-              placeholder="Enter your address"
+              placeholder="Enter your address (G... or C...)"
               value={address}
               onChange={(e) => handleChange(e.target.value)}
               onBlur={handleBlur}
@@ -292,6 +292,13 @@ export function StellarAddressInput({
                   </p>
                 )}
               </div>
+            </InputGroupAddon>
+            <InputGroupAddon align="block-end" className="border-t items-start">
+              <Info className="rounded-full size-4" />
+              <p className="text-muted-foreground text-xs">
+                Please only send to self-custody wallets. Sending to exchanges
+                (e.g. Binance) requires a memo, which is not supported yet.
+              </p>
             </InputGroupAddon>
           </InputGroup>
           {error && (
