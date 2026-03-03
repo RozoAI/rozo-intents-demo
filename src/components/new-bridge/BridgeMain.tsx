@@ -41,6 +41,12 @@ export function BridgeMain() {
     destinationToken,
     sourceChain,
     sourceToken,
+    setSourceChain,
+    setSourceToken,
+    setDestinationChain,
+    setDestinationToken,
+    availableSourceTokens,
+    availableDestinationTokens,
   } = useBridge();
 
   const sourceSelector = useSourceSelector();
@@ -94,6 +100,8 @@ export function BridgeMain() {
   );
 
   const searchParams = useSearchParams();
+  const queryCurrency = searchParams.get("currency") || "USDC";
+  const isQueryCurrencyEURC = queryCurrency === "EURC";
   const isAdmin = searchParams.get("admin") === "rozo";
 
   const hideTrustlineWarning = useMemo(() => {
@@ -101,6 +109,55 @@ export function BridgeMain() {
       !stellarConnected || trustlineStatus.checking || trustlineStatus.exists
     );
   }, [stellarConnected, trustlineStatus.checking, trustlineStatus.exists]);
+
+  // When URL has ?currency=EURC, default bridge direction to Base EURC -> Rozo Stellar EURC
+  useEffect(() => {
+    if (!isQueryCurrencyEURC) {
+      return;
+    }
+
+    // Ensure source/destination chains are Base and Rozo Stellar
+    if (!sourceChain || sourceChain.chainId !== base.chainId) {
+      setSourceChain(base);
+      return;
+    }
+
+    if (!destinationChain || destinationChain.chainId !== rozoStellar.chainId) {
+      setDestinationChain(rozoStellar);
+      return;
+    }
+
+    // Once chains are correct, ensure both tokens are EURC where available
+    const sourceEURC =
+      availableSourceTokens.find(
+        (token) => token.symbol === TokenSymbol.EURC,
+      ) || null;
+    const destinationEURC =
+      availableDestinationTokens.find(
+        (token) => token.symbol === TokenSymbol.EURC,
+      ) || null;
+
+    if (sourceEURC && sourceToken?.symbol !== TokenSymbol.EURC) {
+      setSourceToken(sourceEURC);
+      return;
+    }
+
+    if (destinationEURC && destinationToken?.symbol !== TokenSymbol.EURC) {
+      setDestinationToken(destinationEURC);
+    }
+  }, [
+    isQueryCurrencyEURC,
+    sourceChain,
+    destinationChain,
+    availableSourceTokens,
+    availableDestinationTokens,
+    sourceToken,
+    destinationToken,
+    setSourceChain,
+    setDestinationChain,
+    setSourceToken,
+    setDestinationToken,
+  ]);
 
   const hasEnoughXLM = useMemo(
     () => parseFloat(xlmBalance.balance) >= 1.5,
