@@ -97,15 +97,22 @@ export function BridgeMain() {
     createTrustline,
   } = useStellarWallet();
 
-  const isCurrencyEUR = useMemo(
-    () => stellarCurrency === "EURC",
-    [stellarCurrency],
-  );
-
   const searchParams = useSearchParams();
   const queryCurrency = searchParams.get("currency") || "USDC";
   const isQueryCurrencyEURC = queryCurrency === "EURC";
   const isAdmin = searchParams.get("admin") === "rozo";
+
+  const isCurrencyEUR = useMemo(() => {
+    if (sourceToken?.symbol === TokenSymbol.EURC) return true;
+    if (destinationToken?.symbol === TokenSymbol.EURC) return true;
+    if (stellarCurrency === "EURC") return true;
+    return queryCurrency === "EURC";
+  }, [
+    sourceToken?.symbol,
+    destinationToken?.symbol,
+    stellarCurrency,
+    queryCurrency,
+  ]);
 
   const hideTrustlineWarning = useMemo(() => {
     return (
@@ -171,11 +178,15 @@ export function BridgeMain() {
   );
 
   // Determine appId based on isAdmin
-  const appId = isCurrencyEUR
-    ? "rozoEURC"
-    : isAdmin
-      ? "rozoBridgeStellarAdmin"
-      : DEFAULT_INTENT_PAY_CONFIG.appId;
+  const appId = useMemo(() => {
+    if (isCurrencyEUR) {
+      return "rozoEURC";
+    } else if (isAdmin) {
+      return "rozoBridgeStellarAdmin";
+    } else {
+      return DEFAULT_INTENT_PAY_CONFIG.appId;
+    }
+  }, [isCurrencyEUR, isAdmin]);
 
   // Fetch fee from API using debounced amount
   const {
