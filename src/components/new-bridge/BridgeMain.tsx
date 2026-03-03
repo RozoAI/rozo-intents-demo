@@ -74,6 +74,9 @@ export function BridgeMain() {
   // State for destination address popover
   const [destinationAddressPopoverOpen, setDestinationAddressPopoverOpen] =
     useState(false);
+  // Track if we've already initialized tokens/chains from ?currency=EURC
+  const [initializedFromQueryCurrency, setInitializedFromQueryCurrency] =
+    useState(false);
 
   // Sync destinationChainId with bridge's destinationChain
   useEffect(() => {
@@ -112,7 +115,7 @@ export function BridgeMain() {
 
   // When URL has ?currency=EURC, default bridge direction to Base EURC -> Rozo Stellar EURC
   useEffect(() => {
-    if (!isQueryCurrencyEURC) {
+    if (!isQueryCurrencyEURC || initializedFromQueryCurrency) {
       return;
     }
 
@@ -128,14 +131,12 @@ export function BridgeMain() {
     }
 
     // Once chains are correct, ensure both tokens are EURC where available
-    const sourceEURC =
-      availableSourceTokens.find(
-        (token) => token.symbol === TokenSymbol.EURC,
-      ) || null;
-    const destinationEURC =
-      availableDestinationTokens.find(
-        (token) => token.symbol === TokenSymbol.EURC,
-      ) || null;
+    const sourceEURC = availableSourceTokens.find(
+      (token) => token.symbol === TokenSymbol.EURC,
+    );
+    const destinationEURC = availableDestinationTokens.find(
+      (token) => token.symbol === TokenSymbol.EURC,
+    );
 
     if (sourceEURC && sourceToken?.symbol !== TokenSymbol.EURC) {
       setSourceToken(sourceEURC);
@@ -144,9 +145,14 @@ export function BridgeMain() {
 
     if (destinationEURC && destinationToken?.symbol !== TokenSymbol.EURC) {
       setDestinationToken(destinationEURC);
+      return;
     }
+
+    // Either already EURC or EURC not available; stop enforcing
+    setInitializedFromQueryCurrency(true);
   }, [
     isQueryCurrencyEURC,
+    initializedFromQueryCurrency,
     sourceChain,
     destinationChain,
     availableSourceTokens,
@@ -165,12 +171,11 @@ export function BridgeMain() {
   );
 
   // Determine appId based on isAdmin
-  const appId =
-    stellarCurrency === "EURC"
-      ? "rozoEURC"
-      : isAdmin
-        ? "rozoBridgeStellarAdmin"
-        : DEFAULT_INTENT_PAY_CONFIG.appId;
+  const appId = isCurrencyEUR
+    ? "rozoEURC"
+    : isAdmin
+      ? "rozoBridgeStellarAdmin"
+      : DEFAULT_INTENT_PAY_CONFIG.appId;
 
   // Fetch fee from API using debounced amount
   const {
@@ -727,7 +732,9 @@ export function BridgeMain() {
           // Show manual Stellar address input if wallet is not connected
           <div className="mt-3">
             <StellarAddressInput
-              currency={stellarCurrency}
+              currency={
+                destinationToken?.symbol === TokenSymbol.EURC ? "EURC" : "USDC"
+              }
               value={destinationAddress || ""}
               onChange={handleManualDestinationAddressChange}
               onTrustlineStatusChange={handleTrustlineStatusChange}
