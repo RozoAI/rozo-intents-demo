@@ -26,10 +26,103 @@ import { TokenAmountInput } from "./TokenAmountInput";
 import { cn, formatAddress } from "@/lib/utils";
 import { BridgeHistoryModal } from "./BridgeHistoryModal";
 import { BridgePayButton } from "./BridgePayButton";
+import { useUrlQueryInit } from "./hooks/useUrlQueryInit";
 import { useBridge } from "./providers/BridgeProvider";
 import { useDestinationSelector, useSourceSelector } from "./providers/hooks";
 import { TokenSelectorTrigger } from "./token-selector/TokenSelectorTrigger";
 import { getAllBridgeHistory } from "./utils/bridgeHistory";
+
+interface TrustlineWarningProps {
+  stellarError: string | null | undefined;
+  hideTrustlineWarning: boolean;
+  hasEnoughXLM: boolean;
+  stellarCurrency: string;
+  trustlineStatus: { checking: boolean; creating: boolean };
+  xlmBalance: { balance: string };
+  onCreateTrustline: () => Promise<void>;
+}
+
+function TrustlineWarning({
+  stellarError,
+  hideTrustlineWarning,
+  hasEnoughXLM,
+  stellarCurrency,
+  trustlineStatus,
+  xlmBalance,
+  onCreateTrustline,
+}: TrustlineWarningProps) {
+  if (stellarError) {
+    return (
+      <div className="p-4 rounded-xl border border-red-500/20 bg-red-50 dark:bg-red-500/10">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
+          <div className="space-y-1">
+            <p className="font-medium text-red-900 dark:text-red-100 text-sm">
+              {stellarError}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hideTrustlineWarning && hasEnoughXLM) {
+    return (
+      <div className="p-4 rounded-xl border border-yellow-500/20 bg-yellow-50 dark:bg-yellow-500/10">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
+          <div className="space-y-3 flex-1">
+            <div>
+              <p className="font-medium text-yellow-900 dark:text-yellow-100 text-sm">
+                {stellarCurrency} Trustline Required
+              </p>
+              <p className="text-xs text-yellow-700 dark:text-yellow-200/80 mt-1">
+                Your Stellar wallet needs to establish a trustline for{" "}
+                {stellarCurrency} to receive deposits. This is a one-time setup.
+              </p>
+            </div>
+            <Button
+              onClick={onCreateTrustline}
+              disabled={trustlineStatus.checking || trustlineStatus.creating}
+              size="sm"
+              className="bg-yellow-600 hover:bg-yellow-700 text-white h-9"
+            >
+              {trustlineStatus.creating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                `Add ${stellarCurrency} Trustline`
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hideTrustlineWarning && !hasEnoughXLM) {
+    return (
+      <div className="p-4 rounded-xl border border-orange-500/20 bg-orange-50 dark:bg-orange-500/10">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 mt-0.5 shrink-0" />
+          <div className="space-y-1">
+            <p className="font-medium text-orange-900 dark:text-orange-100 text-sm">
+              Insufficient XLM Balance
+            </p>
+            <p className="text-xs text-orange-700 dark:text-orange-200/80">
+              You need at least 1.5 XLM to create a {stellarCurrency} trustline.
+              Current balance: {xlmBalance.balance} XLM
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
 
 export function BridgeMain() {
   const {
@@ -45,38 +138,26 @@ export function BridgeMain() {
     setSourceToken,
     setDestinationChain,
     setDestinationToken,
+    availableSourceChains,
+    availableDestinationChains,
     availableSourceTokens,
     availableDestinationTokens,
   } = useBridge();
 
   const sourceSelector = useSourceSelector();
   const destinationSelector = useDestinationSelector();
-  // Manual Stellar address for deposits (when wallet not connected)
-  // const manualStellarAddress = useManualStellarAddress();
 
   const [feeType, setFeeType] = useState<FeeType>(FeeType.ExactIn);
   const [fromAmount, setFromAmount] = useState<string | undefined>("");
   const [toAmount, setToAmount] = useState<string | undefined>("");
-  const [debouncedAmount, setDebouncedAmount] = useState<string | undefined>(
-    "",
-  );
+  const [debouncedAmount, setDebouncedAmount] = useState<string | undefined>("");
   const [isSwitched, setIsSwitched] = useState(false);
   const [balanceError, setBalanceError] = useState<string>("");
   const [addressError, setAddressError] = useState<string>("");
-  const [memo, setMemo] = useState<string>("");
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
-  // State to track history updates
   const [historyUpdateTrigger, setHistoryUpdateTrigger] = useState(0);
-  // Destination chain for withdrawal (default to Base)
-  const [destinationChainId, setDestinationChainId] = useState<number>(
-    base.chainId,
-  );
-  // State for destination address popover
-  const [destinationAddressPopoverOpen, setDestinationAddressPopoverOpen] =
-    useState(false);
-  // Track if we've already initialized tokens/chains from ?currency=EURC
-  const [initializedFromQueryCurrency, setInitializedFromQueryCurrency] =
-    useState(false);
+  const [destinationChainId, setDestinationChainId] = useState<number>(base.chainId);
+  const [initializedFromQueryCurrency, setInitializedFromQueryCurrency] = useState(false);
 
   // Sync destinationChainId with bridge's destinationChain
   useEffect(() => {
@@ -120,13 +201,30 @@ export function BridgeMain() {
     );
   }, [stellarConnected, trustlineStatus.checking, trustlineStatus.exists]);
 
+  // Initialize bridge configuration from URL query parameters
+  // Example: ?sourceChain=base&sourceToken=EURC&destinationChain=stellar&destinationToken=EURC&amount=10
+  useUrlQueryInit({
+    availableSourceChains,
+    availableDestinationChains,
+    availableSourceTokens,
+    availableDestinationTokens,
+    setSourceChain,
+    setDestinationChain,
+    setSourceToken,
+    setDestinationToken,
+    setFromAmount,
+    setFeeType,
+    setDebouncedAmount,
+    setDestinationAddress,
+    setInitializedFromQueryCurrency,
+  });
+
   // When URL has ?currency=EURC, default bridge direction to Base EURC -> Rozo Stellar EURC
   useEffect(() => {
     if (!isQueryCurrencyEURC || initializedFromQueryCurrency) {
       return;
     }
 
-    // Ensure source/destination chains are Base and Rozo Stellar
     if (!sourceChain || sourceChain.chainId !== base.chainId) {
       setSourceChain(base);
       return;
@@ -137,7 +235,6 @@ export function BridgeMain() {
       return;
     }
 
-    // Once chains are correct, ensure both tokens are EURC where available
     const sourceEURC = availableSourceTokens.find(
       (token) => token.symbol === TokenSymbol.EURC,
     );
@@ -155,7 +252,6 @@ export function BridgeMain() {
       return;
     }
 
-    // Either already EURC or EURC not available; stop enforcing
     setInitializedFromQueryCurrency(true);
   }, [
     isQueryCurrencyEURC,
@@ -177,7 +273,6 @@ export function BridgeMain() {
     [xlmBalance.balance],
   );
 
-  // Determine appId based on isAdmin
   const appId = useMemo(() => {
     if (isCurrencyEUR) {
       return "rozoEURC";
@@ -188,7 +283,6 @@ export function BridgeMain() {
     }
   }, [isCurrencyEUR, isAdmin]);
 
-  // Fetch fee from API using debounced amount
   const {
     data: feeData,
     isLoading: isFeeLoading,
@@ -206,12 +300,10 @@ export function BridgeMain() {
     },
   );
 
-  // Extract fee error details
   const feeErrorData = feeError as GetFeeError | null;
 
   const currency = isCurrencyEUR ? TokenSymbol.EURC : TokenSymbol.USDC;
 
-  // Check if there's any history (all transactions, authenticated or not)
   const hasHistory = useMemo(() => {
     const history = getAllBridgeHistory();
     return history.length > 0;
@@ -230,11 +322,9 @@ export function BridgeMain() {
     }
 
     return `$${formatNumber(feeData.fee.toString())}`;
-  }, [feeData, isFeeLoading]);
+  }, [feeData, isFeeLoading, currency]);
 
-  // Only show fee data if it matches the current input
   const validFeeData = useMemo(() => {
-    // Check if feeData matches the current debounced amount
     if (
       feeData &&
       debouncedAmount &&
@@ -249,35 +339,27 @@ export function BridgeMain() {
   const calculatedAmount = useMemo(() => {
     const inputAmount = feeType === FeeType.ExactIn ? fromAmount : toAmount;
 
-    // If no amount, clear the output
     if (!inputAmount || inputAmount === "" || parseFloat(inputAmount) === 0) {
       return "";
     }
 
-    // If amount is different from debounced amount, don't show anything (user is still typing)
     if (inputAmount !== debouncedAmount) {
       return "";
     }
 
-    // Only show result if we have valid fee data that matches
     if (validFeeData) {
       return String(
-        feeType === FeeType.ExactIn
-          ? validFeeData.amountOut
-          : validFeeData.amountIn,
+        feeType === FeeType.ExactIn ? validFeeData.amountOut : validFeeData.amountIn,
       );
     }
 
-    // Still loading or no data yet
     return "";
   }, [fromAmount, toAmount, debouncedAmount, validFeeData, feeType]);
 
-  // Determine if amount exceeds limit based on fee error
   const limitError = useMemo(() => {
     const inputAmount = feeType === FeeType.ExactIn ? fromAmount : toAmount;
     if (!inputAmount || parseFloat(inputAmount) === 0) return null;
 
-    // Check if fee error is a limit error
     if (feeErrorData) {
       return {
         maxAllowed: feeErrorData.maxAllowed,
@@ -319,13 +401,11 @@ export function BridgeMain() {
     setDestinationAddress("");
     setBalanceError("");
     setAddressError("");
-    setMemo("");
     setDestinationChainId(base.chainId);
     swapSourceAndDestination();
   };
 
   const handleCreateTrustline = async () => {
-    // Check XLM balance before creating trustline
     const xlmBalanceNum = parseFloat(xlmBalance.balance);
     if (xlmBalanceNum < 1.5) {
       toast.error("Insufficient XLM balance", {
@@ -335,22 +415,13 @@ export function BridgeMain() {
       return;
     }
 
-    // If balance is sufficient, proceed with trustline creation
     await createTrustline();
   };
 
   // Debounce amount input
   useEffect(() => {
     const inputAmount = feeType === FeeType.ExactIn ? fromAmount : toAmount;
-
-    // If amount is empty or zero, update immediately
-    if (!inputAmount || inputAmount === "" || parseFloat(inputAmount) === 0) {
-      setDebouncedAmount(inputAmount);
-      return;
-    }
-
-    // Otherwise, debounce the update
-    setDebouncedAmount(inputAmount);
+    setDebouncedAmount(inputAmount ?? "");
   }, [fromAmount, toAmount, feeType]);
 
   // Listen for history updates
@@ -362,17 +433,13 @@ export function BridgeMain() {
     window.addEventListener("bridge-payment-completed", handleHistoryUpdate);
 
     return () => {
-      window.removeEventListener(
-        "bridge-payment-completed",
-        handleHistoryUpdate,
-      );
+      window.removeEventListener("bridge-payment-completed", handleHistoryUpdate);
     };
   }, []);
 
-  // Clear manual address when wallet connects (user preference for connected wallet)
+  // Sync destination address when Stellar wallet connects
   useEffect(() => {
     if (stellarConnected) {
-      // Only set Stellar address if destination chain is Stellar
       if (destinationChain?.chainId === rozoStellar.chainId) {
         setDestinationAddress(stellarAddress);
 
@@ -409,30 +476,12 @@ export function BridgeMain() {
     isDestinationAddressValid,
   ]);
 
-  // Close popover when address becomes valid
-  useEffect(() => {
-    if (
-      destinationAddressPopoverOpen &&
-      destinationAddress &&
-      isDestinationAddressValid &&
-      !addressError
-    ) {
-      setDestinationAddressPopoverOpen(false);
-    }
-  }, [
-    destinationAddressPopoverOpen,
-    destinationAddress,
-    isDestinationAddressValid,
-    addressError,
-  ]);
-
   const handleManualAddressErrorChange = useCallback((error: string) => {
     setAddressError(error);
   }, []);
 
   const handleManualDestinationAddressChange = useCallback(
     (address: string) => {
-      // Clear destination address if input is empty
       if (!address || address.trim() === "") {
         setDestinationAddress("");
         setAddressError("");
@@ -443,21 +492,17 @@ export function BridgeMain() {
     [setDestinationAddress],
   );
 
-  // Handle trustline status change - only set address if valid and trustline exists
   const handleTrustlineStatusChange = useCallback(
     (address: string, exists: boolean) => {
-      // Only proceed if trustline exists
       if (!exists) {
         return;
       }
 
-      // Validate the address before setting
       try {
         if (!isValidStellarAddress(address)) {
           return;
         }
       } catch {
-        // Invalid address format
         return;
       }
 
@@ -472,24 +517,18 @@ export function BridgeMain() {
       if (sourceChain?.chainId === rozoStellar.chainId) {
         const amountNum = parseFloat(fromAmount);
 
-        const usdcBalance = usdcTrustline.balance;
-        const eurcBalance = eurcTrustline.balance;
-
         const balanceNum =
           sourceToken?.symbol === TokenSymbol.USDC
-            ? parseFloat(usdcBalance)
-            : parseFloat(eurcBalance);
+            ? parseFloat(usdcTrustline.balance)
+            : parseFloat(eurcTrustline.balance);
 
         if (!isNaN(amountNum) && !isNaN(balanceNum)) {
           if (amountNum > balanceNum) {
             setBalanceError(
-              `Insufficient balance. You have ${balanceNum.toLocaleString(
-                "en-US",
-                {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                },
-              )} ${sourceToken?.symbol}`,
+              `Insufficient balance. You have ${balanceNum.toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })} ${sourceToken?.symbol}`,
             );
           } else {
             setBalanceError("");
@@ -510,10 +549,8 @@ export function BridgeMain() {
   // Sync the calculated amount to the opposite field
   useEffect(() => {
     if (feeType === FeeType.ExactIn) {
-      // User filled "From", update "To"
       setToAmount(calculatedAmount);
     } else {
-      // User filled "To", update "From"
       setFromAmount(calculatedAmount);
     }
   }, [calculatedAmount, feeType]);
@@ -544,13 +581,8 @@ export function BridgeMain() {
                 No history found
               </span>
             )}
-
-            {/* <TokenSelector /> */}
           </div>
         </div>
-
-        {/* Stellar USDC Balance */}
-        {/* <StellarBalanceCard currency={currency} /> */}
 
         {/* From Section */}
         <BridgeCard>
@@ -659,7 +691,6 @@ export function BridgeMain() {
           </div>
         )}
 
-        {/* Chain Selector & Address Input - Show when address is invalid for non-Stellar chains or when switched */}
         {destinationChain?.chainId !== rozoStellar.chainId && (
           <div className={cn("mt-3")}>
             <DestinationAddressInput
@@ -673,74 +704,18 @@ export function BridgeMain() {
         )}
 
         {stellarConnected ? (
-          // Show trustline warning if wallet is connected
           <div className="mt-3">
-            {stellarError ? (
-              <div className="p-4 rounded-xl border border-red-500/20 bg-red-50 dark:bg-red-500/10">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
-                  <div className="space-y-1">
-                    <p className="font-medium text-red-900 dark:text-red-100 text-sm">
-                      {stellarError}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : !hideTrustlineWarning && hasEnoughXLM ? (
-              <div className="p-4 rounded-xl border border-yellow-500/20 bg-yellow-50 dark:bg-yellow-500/10">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
-                  <div className="space-y-3 flex-1">
-                    <div>
-                      <p className="font-medium text-yellow-900 dark:text-yellow-100 text-sm">
-                        {stellarCurrency} Trustline Required
-                      </p>
-                      <p className="text-xs text-yellow-700 dark:text-yellow-200/80 mt-1">
-                        Your Stellar wallet needs to establish a trustline for{" "}
-                        {stellarCurrency} to receive deposits. This is a
-                        one-time setup.
-                      </p>
-                    </div>
-                    <Button
-                      onClick={handleCreateTrustline}
-                      disabled={
-                        trustlineStatus.checking || trustlineStatus.creating
-                      }
-                      size="sm"
-                      className="bg-yellow-600 hover:bg-yellow-700 text-white h-9"
-                    >
-                      {trustlineStatus.creating ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Adding...
-                        </>
-                      ) : (
-                        `Add ${stellarCurrency} Trustline`
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ) : !hideTrustlineWarning && !hasEnoughXLM ? (
-              <div className="p-4 rounded-xl border border-orange-500/20 bg-orange-50 dark:bg-orange-500/10">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400 mt-0.5 shrink-0" />
-                  <div className="space-y-1">
-                    <p className="font-medium text-orange-900 dark:text-orange-100 text-sm">
-                      Insufficient XLM Balance
-                    </p>
-                    <p className="text-xs text-orange-700 dark:text-orange-200/80">
-                      You need at least 1.5 XLM to create a {stellarCurrency}{" "}
-                      trustline. Current balance: {xlmBalance.balance} XLM
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : null}
+            <TrustlineWarning
+              stellarError={stellarError}
+              hideTrustlineWarning={hideTrustlineWarning}
+              hasEnoughXLM={hasEnoughXLM}
+              stellarCurrency={stellarCurrency}
+              trustlineStatus={trustlineStatus}
+              xlmBalance={xlmBalance}
+              onCreateTrustline={handleCreateTrustline}
+            />
           </div>
-        ) : destinationChain?.chainId === rozoStellar.chainId &&
-          !stellarConnected ? (
-          // Show manual Stellar address input if wallet is not connected
+        ) : destinationChain?.chainId === rozoStellar.chainId ? (
           <div className="mt-3">
             <StellarAddressInput
               currency={
@@ -752,12 +727,6 @@ export function BridgeMain() {
               error={addressError}
               onErrorChange={handleManualAddressErrorChange}
             />
-            {/* Show memo input only if address is valid and trustline exists */}
-            {/* {destinationAddress &&
-              isDestinationAddressValid &&
-              !addressError && (
-                <MemoInput value={memo} onChange={setMemo} className="mt-4" />
-              )} */}
           </div>
         ) : null}
 
@@ -769,7 +738,6 @@ export function BridgeMain() {
           />
         </div>
 
-        {/* Amount Limit Warning */}
         {limitError && (
           <div className="mt-3 sm:mt-6">
             <AmountLimitWarning
@@ -780,7 +748,6 @@ export function BridgeMain() {
         )}
       </div>
 
-      {/* History Dialog */}
       <BridgeHistoryModal
         open={historyDialogOpen}
         onOpenChange={setHistoryDialogOpen}
