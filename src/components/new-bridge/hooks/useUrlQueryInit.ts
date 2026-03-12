@@ -10,6 +10,8 @@ import {
   polygon,
   rozoSolana,
   rozoStellar,
+  supportedPayoutTokens,
+  supportedTokens,
   Token,
   TokenSymbol,
   validateAddressForChain,
@@ -134,7 +136,10 @@ export function useUrlQueryInit({
         (s) => s.toString().toUpperCase() === symbol,
       );
       if (targetSymbol) {
-        const token = availableSourceTokens.find(
+        const sourceTokensForQueryChain = resolvedSourceChain
+          ? (supportedTokens.get(resolvedSourceChain.chainId) ?? [])
+          : availableSourceTokens;
+        const token = sourceTokensForQueryChain.find(
           (t) => t.symbol === targetSymbol,
         );
         if (token) {
@@ -151,7 +156,10 @@ export function useUrlQueryInit({
         (s) => s.toString().toUpperCase() === symbol,
       );
       if (targetSymbol) {
-        const token = availableDestinationTokens.find(
+        const destinationTokensForQueryChain = resolvedDestinationChain
+          ? (supportedPayoutTokens.get(resolvedDestinationChain.chainId) ?? [])
+          : availableDestinationTokens;
+        const token = destinationTokensForQueryChain.find(
           (t) => t.symbol === targetSymbol,
         );
         if (token) {
