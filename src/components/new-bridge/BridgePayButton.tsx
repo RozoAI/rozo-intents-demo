@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { useAccount } from "wagmi";
 import { Button } from "../ui/button";
 import { useBridge } from "./providers/BridgeProvider";
+import { getBridgeTokenPairError } from "./utils/tokenPairValidation";
 
 interface PayParams {
   /** App ID, for authentication. */
@@ -192,12 +193,18 @@ export function BridgePayButton({
   );
 
   const intentConfig: PayParams | null = useMemo(() => {
+    const tokenPairError = getBridgeTokenPairError(
+      bridge.sourceToken,
+      bridge.destinationToken,
+    );
+
     if (
       !bridge.sourceToken ||
       !bridge.destinationChain ||
       !bridge.destinationToken ||
       !bridge.sourceChain ||
-      !bridge.destinationAddress
+      !bridge.destinationAddress ||
+      tokenPairError
     ) {
       return null;
     }
@@ -252,6 +259,11 @@ export function BridgePayButton({
     bridge.destinationChain,
     bridge.destinationToken,
   ]);
+
+  const tokenPairError = useMemo(
+    () => getBridgeTokenPairError(bridge.sourceToken, bridge.destinationToken),
+    [bridge.sourceToken, bridge.destinationToken],
+  );
 
   useEffect(() => {
     const preparePayment = async () => {
@@ -317,6 +329,18 @@ export function BridgePayButton({
         disabled
       >
         Enter a source and destination token to continue
+      </Button>
+    );
+  }
+
+  if (tokenPairError) {
+    return (
+      <Button
+        size="lg"
+        className="w-full h-10 sm:h-14 text-sm sm:text-lg rounded-xl sm:rounded-2xl cursor-pointer"
+        disabled
+      >
+        {tokenPairError}
       </Button>
     );
   }

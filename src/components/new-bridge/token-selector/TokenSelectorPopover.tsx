@@ -41,11 +41,11 @@ import {
   solana,
   supportedPayoutTokens,
   Token,
-  TokenSymbol,
 } from "@rozoai/intent-common";
 import { CheckIcon } from "lucide-react";
 import Image from "next/image";
 import React, { ReactNode, useCallback, useEffect, useState } from "react";
+import { getBridgeTokenPairError } from "../utils/tokenPairValidation";
 
 interface TokenSelectorPopoverProps {
   open?: boolean;
@@ -108,27 +108,9 @@ export function TokenSelectorPopover({
       // Only apply restrictions in destination selector
       if (!oppositeToken) return false;
 
-      const oppositeSymbol = oppositeToken.symbol;
-      const tokenSymbol = token.symbol;
-
-      // If source token is USDC or USDT, disable EURC in destination
-      if (
-        (oppositeSymbol === TokenSymbol.USDC ||
-          oppositeSymbol === TokenSymbol.USDT) &&
-        tokenSymbol === TokenSymbol.EURC
-      ) {
-        return true;
-      }
-
-      // If source token is EURC, disable USDC and USDT in destination
-      if (
-        oppositeSymbol === TokenSymbol.EURC &&
-        (tokenSymbol === TokenSymbol.USDC || tokenSymbol === TokenSymbol.USDT)
-      ) {
-        return true;
-      }
-
-      return false;
+      return (
+        getBridgeTokenPairError(oppositeToken, token) !== null
+      );
     },
     [oppositeToken, isDestination]
   );
@@ -139,25 +121,7 @@ export function TokenSelectorPopover({
       // Only show disabled reason in destination selector
       if (!isDestination || !oppositeToken) return null;
 
-      const oppositeSymbol = oppositeToken.symbol;
-      const tokenSymbol = token.symbol;
-
-      if (
-        (oppositeSymbol === TokenSymbol.USDC ||
-          oppositeSymbol === TokenSymbol.USDT) &&
-        tokenSymbol === TokenSymbol.EURC
-      ) {
-        return "EURC can only be transferred from EURC";
-      }
-
-      if (
-        oppositeSymbol === TokenSymbol.EURC &&
-        (tokenSymbol === TokenSymbol.USDC || tokenSymbol === TokenSymbol.USDT)
-      ) {
-        return "EURC can only be transferred to EURC";
-      }
-
-      return null;
+      return getBridgeTokenPairError(oppositeToken, token);
     },
     [oppositeToken, isDestination]
   );

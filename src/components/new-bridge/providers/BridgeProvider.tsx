@@ -173,6 +173,42 @@ export function BridgeProvider({
     );
   }, []);
 
+  const getCompatibleDestinationToken = useCallback(
+    (
+      sourceToken: Token | null,
+      destinationChain: Chain | null,
+      currentDestinationToken: Token | null
+    ): Token | null => {
+      if (!sourceToken) {
+        return currentDestinationToken;
+      }
+
+      if (!destinationChain) {
+        return currentDestinationToken;
+      }
+
+      const destinationChainTokens =
+        supportedPayoutTokens.get(destinationChain.chainId) || [];
+
+      if (sourceToken.symbol === TokenSymbol.EURC) {
+        return (
+          destinationChainTokens.find((token) => token.symbol === TokenSymbol.EURC) ||
+          null
+        );
+      }
+
+      if (
+        sourceToken.symbol === TokenSymbol.USDC ||
+        sourceToken.symbol === TokenSymbol.USDT
+      ) {
+        return findFirstNonEURCToken(destinationChainTokens);
+      }
+
+      return currentDestinationToken;
+    },
+    [findFirstNonEURCToken]
+  );
+
   // Set source chain with automatic token selection
   const setSourceChain = useCallback((chain: Chain) => {
     setState((prev) => {
@@ -196,6 +232,12 @@ export function BridgeProvider({
       if (prev.destinationChain?.chainId === chain.chainId) {
         newDestinationChain = null;
         newDestinationToken = null;
+      } else {
+        newDestinationToken = getCompatibleDestinationToken(
+          defaultToken,
+          newDestinationChain,
+          newDestinationToken
+        );
       }
 
       return {
@@ -206,7 +248,7 @@ export function BridgeProvider({
         destinationToken: newDestinationToken,
       };
     });
-  }, []);
+  }, [getCompatibleDestinationToken]);
 
   // Set source token
   // Users should always be able to choose any token as source (no restrictions)
@@ -226,23 +268,11 @@ export function BridgeProvider({
           // Set destination token to USDC Stellar
           newDestinationToken = rozoStellarUSDC;
         } else if (prev.destinationChain) {
-          // If destination chain is selected, update destination token based on source token
-          const destinationChainTokens =
-            supportedPayoutTokens.get(prev.destinationChain.chainId) || [];
-
-          if (token.symbol === TokenSymbol.EURC) {
-            // If source is EURC, MUST select EURC in destination (or null if not available)
-            const eurcToken = destinationChainTokens.find(
-              (t) => t.symbol === TokenSymbol.EURC
-            );
-            newDestinationToken = eurcToken || null; // Only EURC or null, no fallback
-          } else if (
-            token.symbol === TokenSymbol.USDC ||
-            token.symbol === TokenSymbol.USDT
-          ) {
-            // If source is USDC/USDT, select first non-EURC token in destination
-            newDestinationToken = findFirstNonEURCToken(destinationChainTokens);
-          }
+          newDestinationToken = getCompatibleDestinationToken(
+            token,
+            prev.destinationChain,
+            newDestinationToken
+          );
         }
 
         return {
@@ -253,7 +283,7 @@ export function BridgeProvider({
         };
       });
     },
-    [findFirstNonEURCToken]
+    [getCompatibleDestinationToken]
   );
 
   // Set destination chain with automatic token selection
